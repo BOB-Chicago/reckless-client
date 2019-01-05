@@ -9,6 +9,7 @@ type app_location =
   | LocShowKey
   | LocPaymentRequests
   | LocDonate
+  [@@bs.deriving jsConverter]
 
 (* ~~~~~~~~~~~~~ *)
 (* Click targets *)
@@ -49,7 +50,7 @@ type payment_request =
   ; memo: string
   ; amount: int
   ; paid: bool
-  }
+  } [@@bs.deriving jsConverter]
 
 
 (* ~~~~~~~~ *)
@@ -61,7 +62,7 @@ type app_state =
     key: string option;
     payment_requests: payment_request;
     payment_request_cursor: int
-  }
+  } [@@bs.deriving jsConverter]
 
 let update stim state =
   match stim with
@@ -75,10 +76,10 @@ let update stim state =
 
 type app_element = AppElement
 
-external page : app_element array -> unit = "jsPage"
-external header : string -> app_element = "jsHeader"
-external row : app_element array -> app_element = "jsRow"
-external button : string -> click_target -> app_element = "jsButton"
+external page : app_element array -> unit = "page" [@@bs.module "lib"]
+external header : string -> app_element = "header" [@@bs.module "lib"]
+external row : app_element array -> app_element = "row" [@@bs.module "lib"]
+external button : string -> click_target -> app_element = "button" [@@bs.module "lib"]
 
 
 let nav p = 
