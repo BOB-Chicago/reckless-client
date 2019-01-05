@@ -7,13 +7,16 @@
     "watch": "bsb -make-world -w"
   },
   "keywords": [
-		"bob",
-		"chicago",
-		"lightning",
-		"network"
+    "bob",
+    "chicago",
+    "lightning",
+    "network"
   ],
   "license": "MIT",
   "devDependencies": {
     "bs-platform": "^4.0.14"
+  },
+  "dependencies": {
+    "maquette": "^3.3.3"
   }
 }

@@ -74,13 +74,10 @@ let update stim state =
 (* Interface *)
 (* ~~~~~~~~~ *)
 
+(* Generic type to hide details of working with the dom tree *)
 type app_element = AppElement
 
-external page : app_element array -> unit = "page" [@@bs.module "lib"]
-external header : string -> app_element = "header" [@@bs.module "lib"]
-external row : app_element array -> app_element = "row" [@@bs.module "lib"]
-external button : string -> click_target -> app_element = "button" [@@bs.module "lib"]
-
+external h : string -> 'a -> app_element array -> app_element = "h" [@@bs.module]
 
 let nav p = 
   let name = match p with
