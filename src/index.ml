@@ -9,7 +9,11 @@ type app_location =
   | LocShowKey
   | LocPaymentRequests
   | LocDonate
-  [@@bs.deriving jsConverter]
+
+type input_field =
+  | KeyEntry
+  | DonationMemo
+  | DonationAmount
 
 (* ~~~~~~~~~~~~~ *)
 (* Click targets *)
@@ -40,6 +44,7 @@ type server_message =
 type stimulus =
   | ServerMessage of server_message
   | Click of click_target
+  | Input of input_field * string
 
 (* ~~~~~~~~~~ *)
 (* Data model *)
@@ -57,25 +62,51 @@ type payment_request =
 (* Reactive *)
 (* ~~~~~~~~ *)
 
+type user_provided_data =
+  { key_entry: string
+  ; donation_memo: string
+  ; donation_amount: string
+  }
+
 type app_state =
-  { active_page: app_location; 
-    key: string option;
-    payment_requests: payment_request;
-    payment_request_cursor: int
+  { active_page: app_location
+  ; key: string option
+  ; payment_requests: payment_request array
+  ; payment_request_cursor: int
+  ; input_fields: user_provided_data 
   } [@@bs.deriving jsConverter]
 
+
+let empty_state =
+  { active_page = LocStart
+  ; key = None
+  ; payment_requests = [||]
+  ; payment_request_cursor = 0
+  ; input_fields =
+    { key_entry = ""
+    ; donation_memo = ""
+    ; donation_amount = "" 
+    }
+  }
 
 let update stim state =
   match stim with
     | Click (Nav x) -> 
         { state with active_page = x }
     | Click (SetKey x) -> 
-        { state with key = x } ;;
+        { state with key = x } 
+    | Input (x, s) ->
+        { state with input_fields =
+          match x with
+          | KeyEntry -> { state.input_fields with key_entry = s } 
+          | DonationMemo -> { state.input_fields with donation_memo = s }
+          | DonationAmount -> { state.input_fields with donation_amount = s }
+        } ;;
 
 
-(* ~~~~~~~~~ *)
-(* Interface *)
-(* ~~~~~~~~~ *)
+(* ~~~~~~~~~~~~~~~~~ *)
+(* Interface helpers *)
+(* ~~~~~~~~~~~~~~~~~ *)
 
 open Bridge
 
@@ -97,56 +128,93 @@ let navText p = match p with
   | LocPaymentRequests -> "payment requests"
 
 
-let make_ui_kit emit =
-  { header = fun text -> h "h1" (vnode_attributes ()) [| hText text |] 
+let header text =  
+  h "h1" (vnode_attributes ()) [| hText text |]
 
-  ; row =  
-      let atts = vnode_attributes ~class_: "row" () in 
-      h "div" atts 
+let row =  
+  let atts = vnode_attributes ~class_: "row" () in 
+  h "div" atts 
 
-  ; column = 
-      let atts = vnode_attributes ~class_: "column" () in 
-      h "div" atts
+let column = 
+  let atts = vnode_attributes ~class_: "column" () in 
+  h "div" atts
 
-  ; par = fun text -> 
-      let atts = vnode_attributes ~class_:"simple" () in 
-      h "p" atts [| hText text |]
+let par text = 
+  let atts = vnode_attributes ~class_: "simple" () in 
+  h "p" atts [| hText text |]
 
-  ; button = 
-      let atts = vnode_attributes ~class_:"button" () in
-      fun text _ -> h "div" atts [| hText text |]
+let button emit text t = 
+  let on_click = fun _ -> emit (Click t) in
+  let atts = vnode_attributes ~class_:"button" ~onclick:on_click () in
+  h "div" atts [| hText text |]
 
-  }
+let input_ emit t x = 
+  let on_input e = emit (Input (x, e.target.value)) in
+  let input_elt = h "input" (vnode_attributes ~oninput: on_input ()) [||] in
+  match t with
+
+    | Some text ->
+        h "div" (vnode_attributes ~class_: "input" ())
+          [| h "p" (vnode_attributes ()) [| hText text |]
+           ; input_elt 
+           |]
+   
+    | None ->
+        input_elt
 
 
-let render state =
-  let { page; header; row; column; par; button; } = make_ui_kit emit in
-  let nav p = button (navText p) (Click (Nav p)) in
-  let elts = match state.active_page with 
+(* ~~~~~~~~~ *)
+(* Interface *)
+(* ~~~~~~~~~ *)
+
+let render emit state =
+  let button' = button emit in
+  let input_elt = input_ emit in
+  let nav p = button' (navText p) (Nav p) in
+  let forgetKey = button' "forget your key" (SetKey None) in
+  match state.active_page with 
+
     | LocStart ->  
       [| header "BOB chicago #reckless" 
        ; row [| nav LocDonate; nav LocPaymentRequests;  nav LocManageKeys |] 
-      |]
+       |]
+
     | LocManageKeys ->  
-        let forgetKey = button "forget your key" (SetKey None) in
         [| header "Manage your key"
          ; match state.key with 
-            | None -> row [| nav LocEnterKey; button "generate a random key" GenRandomKey; nav LocStart |]
-            | Some _ -> row [| forgetKey; nav LocShowKey; nav LocStart |]
-        |]
-    | LocShowKey -> [| header "Your current key"; let Some key = state.key in par key; row [| forgetKey; nav LocStart |] |] 
-    | LocEnterKey -> [| header "Please enter a new key"; input KeyEntry; row [| nav LocStart |] |]
+            | None -> 
+                row [| nav LocEnterKey; button' "generate a random key" GenRandomKey; nav LocStart |]
+            | Some _ -> 
+                row [| forgetKey; nav LocShowKey; nav LocStart |]
+         |]
+
+    | LocShowKey -> 
+        [| header "Your current key"
+         ; let Some key = state.key in par key
+         ; row [| forgetKey; nav LocStart |] 
+         |] 
+
+    | LocEnterKey -> 
+        [| header "Please enter a new key"
+         ; input_elt None KeyEntry
+         ; row [| nav LocStart |] 
+         |]
+
     | LocPaymentRequests -> 
         [| header "Your payment requests"
-         ; column page_of_prs
-         ; row [| nav Start |]
+         ; column [||] 
+         ; row [| nav LocStart |]
         |]
+
     | LocDonate ->
         [| header "Donate to BOB"
-         ; input "donation message" DonationMessage
-         ; input "donation amount" DonationAmount
+         ; input_elt (Some "donation message") DonationMemo
+         ; input_elt (Some "donation amount") DonationAmount
          ; row [| nav LocStart |]
          |]
-  in page elts
 
+
+(* ~~~~~~~~~~~~~ *)
+(* Start the app *)
+(* ~~~~~~~~~~~~~ *)
 
