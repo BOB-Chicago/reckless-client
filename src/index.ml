@@ -64,45 +64,89 @@ type app_state =
     payment_request_cursor: int
   } [@@bs.deriving jsConverter]
 
+
 let update stim state =
   match stim with
-    | Click (Nav x) -> { state with active_page = x }
-    | Click (SetKey x) -> { state with key = x }
-    | _ -> state
+    | Click (Nav x) -> 
+        { state with active_page = x }
+    | Click (SetKey x) -> 
+        { state with key = x } ;;
+
 
 (* ~~~~~~~~~ *)
 (* Interface *)
 (* ~~~~~~~~~ *)
 
-(* Generic type to hide details of working with the dom tree *)
-type app_element = AppElement
+open Bridge
 
-external h : string -> 'a -> app_element array -> app_element = "h" [@@bs.module]
+type interface_kit =
+  { header: string -> app_element
+  ; row: app_element array -> app_element
+  ; column: app_element array -> app_element
+  ; par: string -> app_element
+  ; button: string -> click_target -> app_element
+  }
 
-let nav p = 
-  let name = match p with
-    | LocStart -> ">> start page"
-    | LocManageKeys -> "manage keys"
-    | LocShowKey -> "show key"
-    | LocEnterKey -> "enter a new key"
-    | LocDonate -> "donate" 
-    | LocPaymentRequests -> "payment requests"
-  in button name (Nav p)
+
+let navText p = match p with
+  | LocStart -> ">> start page"
+  | LocManageKeys -> "manage keys"
+  | LocShowKey -> "show key"
+  | LocEnterKey -> "enter a new key"
+  | LocDonate -> "donate" 
+  | LocPaymentRequests -> "payment requests"
+
+
+let make_ui_kit emit =
+  { header = fun text -> h "h1" (vnode_attributes ()) [| hText text |] 
+
+  ; row =  
+      let atts = vnode_attributes ~class_: "row" () in 
+      h "div" atts 
+
+  ; column = 
+      let atts = vnode_attributes ~class_: "column" () in 
+      h "div" atts
+
+  ; par = fun text -> 
+      let atts = vnode_attributes ~class_:"simple" () in 
+      h "p" atts [| hText text |]
+
+  ; button = 
+      let atts = vnode_attributes ~class_:"button" () in
+      fun text _ -> h "div" atts [| hText text |]
+
+  }
 
 
 let render state =
+  let { page; header; row; column; par; button; } = make_ui_kit emit in
+  let nav p = button (navText p) (Click (Nav p)) in
   let elts = match state.active_page with 
     | LocStart ->  
       [| header "BOB chicago #reckless" 
        ; row [| nav LocDonate; nav LocPaymentRequests;  nav LocManageKeys |] 
       |]
     | LocManageKeys ->  
+        let forgetKey = button "forget your key" (SetKey None) in
         [| header "Manage your key"
          ; match state.key with 
             | None -> row [| nav LocEnterKey; button "generate a random key" GenRandomKey; nav LocStart |]
-            | Some _ -> row [| button "forget your key" (SetKey None); nav LocShowKey; nav LocStart |]
+            | Some _ -> row [| forgetKey; nav LocShowKey; nav LocStart |]
         |]
-    | LocShowKey -> [| header "Your current key" |] 
+    | LocShowKey -> [| header "Your current key"; let Some key = state.key in par key; row [| forgetKey; nav LocStart |] |] 
+    | LocEnterKey -> [| header "Please enter a new key"; input KeyEntry; row [| nav LocStart |] |]
+    | LocPaymentRequests -> 
+        [| header "Your payment requests"
+         ; column page_of_prs
+         ; row [| nav Start |]
+        |]
+    | LocDonate ->
+        [| header "Donate to BOB"
+         ; input "donation message" DonationMessage
+         ; input "donation amount" DonationAmount
+         ; row [| nav LocStart |]
+         |]
   in page elts
 
 
