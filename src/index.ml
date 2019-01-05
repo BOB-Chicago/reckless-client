@@ -7,7 +7,7 @@ type app_location =
   | LocManageKeys
   | LocEnterKey
   | LocShowKey
-  | LocPaymentRequests of int 
+  | LocPaymentRequests
   | LocDonate
 
 (* ~~~~~~~~~~~~~ *)
@@ -15,12 +15,12 @@ type app_location =
 (* ~~~~~~~~~~~~~ *)
 
 type click_target =
-  | ClickNav of app_location
+  | Nav of app_location
 
-  | ClickGetPayReq of string * int 
+  | GetPayReq of string * int 
 
-  | ClickRandomKey
-  | ClickReplaceKey of string
+  | GenRandomKey
+  | SetKey of string option
 
 (* ~~~~~~~~~~~~~~~~~ *)
 (* Protocol messages *)
@@ -44,7 +44,6 @@ type stimulus =
 (* Data model *)
 (* ~~~~~~~~~~ *)
 
-[@bs_deriving {jsConverter: newType}]
 type payment_request =
   { r_hash: string
   ; memo: string
@@ -59,17 +58,53 @@ type payment_request =
 
 type app_state =
   { active_page: app_location; 
-    key: string;
+    key: string option;
     payment_requests: payment_request;
+    payment_request_cursor: int
   }
 
 let update stim state =
   match stim with
-  | Click (ClickNav x) -> { state with active_page = x }
-  | Click (ClickReplaceKey x) -> { state with key = x }
-  | stim -> state
+    | Click (Nav x) -> { state with active_page = x }
+    | Click (SetKey x) -> { state with key = x }
+    | _ -> state
 
 (* ~~~~~~~~~ *)
 (* Interface *)
 (* ~~~~~~~~~ *)
+
+type app_element = AppElement
+
+external page : app_element array -> unit = "jsPage"
+external header : string -> app_element = "jsHeader"
+external row : app_element array -> app_element = "jsRow"
+external button : string -> click_target -> app_element = "jsButton"
+
+
+let nav p = 
+  let name = match p with
+    | LocStart -> ">> start page"
+    | LocManageKeys -> "manage keys"
+    | LocShowKey -> "show key"
+    | LocEnterKey -> "enter a new key"
+    | LocDonate -> "donate" 
+    | LocPaymentRequests -> "payment requests"
+  in button name (Nav p)
+
+
+let render state =
+  let elts = match state.active_page with 
+    | LocStart ->  
+      [| header "BOB chicago #reckless" 
+       ; row [| nav LocDonate; nav LocPaymentRequests;  nav LocManageKeys |] 
+      |]
+    | LocManageKeys ->  
+        [| header "Manage your key"
+         ; match state.key with 
+            | None -> row [| nav LocEnterKey; button "generate a random key" GenRandomKey; nav LocStart |]
+            | Some _ -> row [| button "forget your key" (SetKey None); nav LocShowKey; nav LocStart |]
+        |]
+    | LocShowKey -> [| header "Your current key" |] 
+  in page elts
+
 
