@@ -4,6 +4,7 @@
   "scripts": {
     "clean": "bsb -clean-world",
     "build": "bsb -make-world",
+		"bundle": "webpack",
     "watch": "bsb -make-world -w"
   },
   "keywords": [
@@ -14,7 +15,9 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "bs-platform": "^4.0.14"
+    "bs-platform": "^4.0.14",
+    "webpack": "^4.28.3",
+    "webpack-cli": "^3.2.0"
   },
   "dependencies": {
     "maquette": "^3.3.3"
