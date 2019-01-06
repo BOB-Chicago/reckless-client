@@ -1,7 +1,20 @@
+(* crypto *)
+
+module Uint8Array = Js.Typed_array.Uint8Array
+
 let randomBytes n =
-  let arr = Js.Typed_array.Uint8Array.fromLength n in
+  let arr = Uint8Array.fromLength n in
   Bridge.getRandomValues arr;
   arr
+
+let sha256 bytes =
+  let buf = Uint8Array.buffer bytes in
+  Bridge.digest "SHA-256" buf
+
+let deriveKey bytes path = 
+  let pathBytes = Bridge.encode path in
+  let buf = Bridge.uint8ArrayConcat [| bytes; pathBytes |] in 
+  sha256 buf 
 
 (* Hex *)
 
@@ -20,7 +33,7 @@ let hexEncode =
     let r = v - 16 * q in
     Js.String.concatMany [| toHexDigit q; toHexDigit r |] s 
   in
-  Js.Typed_array.Uint8Array.reduce step ""
+  Uint8Array.reduce step ""
 
 let hexDecode hex = 
   let l = String.length hex in

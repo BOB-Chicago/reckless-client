@@ -73,7 +73,11 @@ let button emit text t =
   h "div" atts [| hText text |]
 
 let input_ emit t x = 
-  let on_input e = emit (Input (x, e.target.value)) in
+  let on_input e = 
+        match e.target.value with
+        | Some v -> emit (Input (x, v)) 
+        | None -> ()
+  in
   let input_elt = h "input" (vnode_attributes ~oninput: on_input ()) [||] in
   match t with
 
