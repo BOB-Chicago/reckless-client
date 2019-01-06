@@ -1,5 +1,6 @@
 open Types
 open Js.Json
+open Js.Result
 
 module Option = Belt.Option
 
@@ -19,27 +20,27 @@ let decodeTaggedId raw =
 
   | _ -> None 
 
-let parseserverMessage msg =
+let parse_server_message msg =
   (* nonce & ref fields *)
   let outer obj f =
     match Js.Dict.get obj "nonce" with
-    | None -> failwith "server message / nonce"
+    | None -> Error("server message / nonce")
     | Some nonceRaw ->
         begin match classify nonceRaw with
         | JSONNumber n ->
             let ref =  (Js.Dict.get obj "ref") |. Option.flatMap decodeNumber |. Option.map Js.Math.floor in
             let nonce = Js.Math.floor n in
             f nonce ref
-        | _ -> failwith "server message / nonce : type"
+        | _ -> Error("server message / nonce : type")
         end
   in
 
-  let pack body nonce ref = { nonce; ref; body } in
+  let pack body nonce ref = Ok { nonce; ref; body } in
 
   match classify (parseExn msg) with
   | JSONObject obj -> 
       match Js.Dict.get obj "tag" with
-      | None -> failwith "server message / tag"
+      | None -> Error("server message / tag")
       | Some rawTag -> 
           begin match classify rawTag with
           | JSONString tag ->
@@ -52,7 +53,7 @@ let parseserverMessage msg =
                   begin match (p, r) with
                   | (Some pr, Some r_hash) ->
                       outer obj (pack (PaymentRequest(pr, r_hash)))
-                  | _ -> failwith "server message (paymentRequest) / (paymentRequest | r_hash)"
+                  | _ -> Error("server message (paymentRequest) / (paymentRequest | r_hash)")
                   end
 
 
@@ -62,23 +63,23 @@ let parseserverMessage msg =
                   begin match (i, r) with
                   | (Some id, Some r_hash) -> 
                       outer obj (pack (Confirmation(id, r_hash)))
-                  | _ -> failwith "server message (confirmation)"
+                  | _ -> Error("server message (confirmation)")
                   end
                       
 
               | "object" -> outer obj (pack Types.Object) 
               
-              | _ -> failwith "server message / tag (unknown)"
+              | _ -> Error("server message / tag (unknown)")
               end
 
-          | _ -> failwith "server message / tag : type"
+          | _ -> Error("server message / tag : type")
           end
 
-  | _ -> failwith "server message: type"
+  | _ -> Error("server message: type")
 
 
 
-let encodeClientMessage msg =
+let encode_client_message msg =
   match msg with
   | DonateMsg(memo, amount) -> 
       let spec = 
@@ -87,4 +88,4 @@ let encodeClientMessage msg =
          ; ("amount", number (Js.Int.toFloat amount)) 
         |]
       in
-      object_ (Js.Dict.fromArray spec)
+      Js.Dict.fromArray spec
