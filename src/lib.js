@@ -1,13 +1,9 @@
-exports.header = text => {
-	const node = document.createElement("h1");
-	node.innerText = text;
-	return node;
+// Create a function that can be used to send websocket messages 
+const getWebSocketSend = config => {
+	const ws = new WebSocket(config.url);
+	ws.onopen = config.on_open;
+	ws.onclose = config.on_close;
+	ws.onmessage = config.on_message;
+	send = ws.send.bind(ws);
+	return send;
 }
-
-exports.page = xs => {
-}
-
-exports.row = xs => {
-}
-
-exports.button = (text, eff) => {}

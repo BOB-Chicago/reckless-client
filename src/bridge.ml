@@ -17,6 +17,19 @@ type projector =
   { scheduleRender : unit -> unit 
   }
 
+type websocket_message = { data: string }
+
+type websocket_config =
+  { url: string
+  ; on_open: unit -> unit
+  ; on_close: unit -> unit
+  ; on_message: websocket_message -> unit
+  }
+
 external hText : string -> app_element = "%identity"
 external h : string -> vnode_attributes -> app_element array -> app_element = "h" [@@bs.module "maquette"]
 external createProjector : unit -> projector = "createProjector" [@@bs.module "maquette"]
+
+external getWebSocketSend : websocket_config -> string -> unit = "getWebSocketSend" [@@bs.module "./lib"]
+
+external getRandomValues : Js.Typed_array.Uint8Array.t -> unit = "getRandomValues" [@@bs.val][@@bs.scope "window", "crypto"]
