@@ -31,11 +31,21 @@ type click_target =
 (* Protocol messages *)
 (* ~~~~~~~~~~~~~~~~~ *)
 
+type tagged_id = 
+  | IdW32 of string * int
+  | IdB of string * string
+
 type server_message =
   | Ack
   | Object
   | PaymentRequest of string * string 
-  | Confirmation of string 
+  | Confirmation of tagged_id * string 
+
+type 'a session_message =
+  { nonce: int
+  ; ref: int option
+  ; body: 'a 
+  } [@@bs.deriving jsConverter]
 
 type client_message =
   | DonateMsg of string * int
