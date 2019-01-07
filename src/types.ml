@@ -1,3 +1,12 @@
+(* ~~~~~~ *)
+(* Config *)
+(* ~~~~~~ *)
+
+type app_config =
+  { node_uri : string
+  ; ws_url: string
+  }
+
 (* ~~~~~~~~~ *)
 (* Locations *)
 (* ~~~~~~~~~ *)

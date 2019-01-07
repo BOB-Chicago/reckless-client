@@ -6,6 +6,8 @@ open Bridge
 (* ~~~~~~~~~ *)
 
 let update stim state =
+  Js.log stim;
+  Js.log state;
   match stim with
   | Click (Nav x) -> 
       ({ state with active_page = x }, None)
@@ -53,7 +55,7 @@ let navText p = match p with
   | LocPaymentRequests -> "payment requests"
 
 let header text =  
-  h "h1" (vnode_attributes ()) [| hText text |]
+  h "h1" (vnode_attributes ()) [| h_text text |]
 
 let row =  
   let atts = vnode_attributes ~class_: "row" () in 
@@ -65,12 +67,12 @@ let column =
 
 let par text = 
   let atts = vnode_attributes ~class_: "simple" () in 
-  h "p" atts [| hText text |]
+  h "p" atts [| h_text text |]
 
 let button emit text t = 
   let on_click = fun _ -> emit (Click t) in
   let atts = vnode_attributes ~class_:"button" ~onclick:on_click () in
-  h "div" atts [| hText text |]
+  h "div" atts [| h_text text |]
 
 let input_ emit t x = 
   let on_input e = 
@@ -83,7 +85,7 @@ let input_ emit t x =
 
   | Some text ->
       h "div" (vnode_attributes ~class_: "input" ())
-        [| h "p" (vnode_attributes ()) [| hText text |]
+        [| h "p" (vnode_attributes ()) [| h_text text |]
          ; input_elt 
          |]
  
@@ -101,44 +103,66 @@ let render emit state =
   let nav p = button' (navText p) (Nav p) in
   let forgetKey = button' "forget your key" (SetKey None) in
 
-  match state.active_page with 
+  let content = match state.active_page with 
 
-  | LocStart ->  
-      [| header "BOB chicago #reckless" 
-       ; row [| nav LocDonate; nav LocPaymentRequests;  nav LocManageKeys |] 
-       |]
+    | LocStart ->  
+        [| header "BOB chicago #reckless" 
+         ; row [| nav LocDonate; nav LocPaymentRequests;  nav LocManageKeys |] 
+         |]
 
-  | LocManageKeys ->  
-      [| header "Manage your key"
-       ; match state.key with 
-         | None -> 
-            row [| nav LocEnterKey; button' "generate a random key" GenRandomKey; nav LocStart |]
-         | Some _ -> 
-            row [| forgetKey; nav LocShowKey; nav LocStart |]
-       |]
+    | LocManageKeys ->  
+        [| header "Manage your key"
+         ; match state.key with 
+           | None -> 
+              row [| nav LocEnterKey; button' "generate a random key" GenRandomKey; nav LocStart |]
+           | Some _ -> 
+              row [| forgetKey; nav LocShowKey; nav LocStart |]
+         |]
 
-  | LocShowKey -> 
-      [| header "Your current key"
-       ; let Some key = state.key in par key
-       ; row [| forgetKey; nav LocStart |] 
-       |] 
+    | LocShowKey -> 
+        [| header "Your current key"
+         ; let Some key = state.key in par key
+         ; row [| forgetKey; nav LocStart |] 
+         |] 
 
-  | LocEnterKey -> 
-      [| header "Please enter a new key"
-       ; input_elt None KeyEntry
-       ; row [| nav LocStart |] 
-       |]
+    | LocEnterKey -> 
+        [| header "Please enter a new key"
+         ; input_elt None KeyEntry
+         ; row [| nav LocStart |] 
+         |]
 
-  | LocPaymentRequests -> 
-      [| header "Your payment requests"
-       ; column [||] 
-       ; row [| nav LocStart |]
-      |]
+    | LocPaymentRequests -> 
+        [| header "Your payment requests"
+         ; column [||] 
+         ; row [| nav LocStart |]
+        |]
 
-  | LocDonate ->
-      [| header "Donate to BOB"
-       ; input_elt (Some "donation message") DonationMemo
-       ; input_elt (Some "donation amount") DonationAmount
-       ; row [| nav LocStart |]
-       |]
+    | LocDonate ->
+        [| header "Donate to BOB"
+         ; input_elt (Some "donation message") DonationMemo
+         ; input_elt (Some "donation amount") DonationAmount
+         ; row [| nav LocStart |]
+         |]
+  in h "div" (vnode_attributes ~class_: "main" ()) content
+
+
+let run _ =
+  let event_bus = make_event_bus () in
+  let state = ref empty_state in
+  let proj = create_projector () in
+  let handler stim = 
+    let (s1, m) = update stim !state in
+    begin state := s1;
+    begin match m with
+      | None -> ()
+      | Some msg -> Js.log msg 
+    end;
+    schedule_render proj; 
+    end;
+  in 
+  begin event_bus.register handler;
+  let app = get_element_by_id doc "app" in
+  replace proj app (fun _ -> render event_bus.emit !state);
+  schedule_render proj;
+  end
 

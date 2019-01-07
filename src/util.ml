@@ -4,7 +4,7 @@ module Uint8Array = Js.Typed_array.Uint8Array
 
 let randomBytes n =
   let arr = Uint8Array.fromLength n in
-  Bridge.getRandomValues arr;
+  Bridge.get_random_values arr;
   arr
 
 let sha256 bytes =
@@ -13,7 +13,7 @@ let sha256 bytes =
 
 let deriveKey bytes path = 
   let pathBytes = Bridge.encode path in
-  let buf = Bridge.uint8ArrayConcat [| bytes; pathBytes |] in 
+  let buf = Bridge.uint8Array_concat [| bytes; pathBytes |] in 
   sha256 buf 
 
 (* Hex *)

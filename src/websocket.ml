@@ -29,7 +29,7 @@ let makeSender url =
 
   let on_close _ = ready := false in
 
-  let sendString = Bridge.getWebSocketSend { url; on_open; on_message; on_close } in
+  let sendString = Bridge.get_websocket_send { url; on_open; on_message; on_close } in
 
   fun outboundMessage f ->
 
