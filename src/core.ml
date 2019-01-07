@@ -11,7 +11,7 @@ let update stim state =
   Js.log state;
   match stim with
   | Click (Nav x) -> 
-      ({ state with active_page = x }, None, true)
+      ({ state with active_page = x }, None)
 
   | Click (SetKey x) -> 
       let state1 = 
@@ -21,7 +21,7 @@ let update stim state =
           ; active_page = LocManageKeys
         }
       in
-      (state1, None, true)
+      (state1, None)
 
   | Click Donate ->
       let amount = 
@@ -33,13 +33,13 @@ let update stim state =
               with donation_memo = ""
                  ; donation_amount = "" } }
       in
-      (state1, Some (DonateMsg (state.input_fields.donation_memo, amount)), true)
+      (state1, Some (DonateMsg (state.input_fields.donation_memo, amount)))
   
   | Click GenRandomKey ->
       let keyBuf = Util.randomBytes 32 in
       let hex = Util.hexEncode keyBuf in
       let state1 = { state with key = Some hex } in
-      (state1, None, true)
+      (state1, None)
 
   | Input (x, s) ->
       let state1 = { state with input_fields =
@@ -49,12 +49,12 @@ let update stim state =
           | DonationAmount -> { state.input_fields with donation_amount = s }
         } 
       in
-      (state1, None, false)
+      (state1, None)
   
   | ServerMessage(Confirmation(IdW32(t,v),r_hash)) -> 
-      (state, None, false)
+      (state, None)
 
-  | _ -> (state, None, false) ;;
+  | _ -> (state, None) ;;
 
 
 (* ~~~~~~~~~~~~~~~~~ *)
@@ -98,10 +98,10 @@ let input_ emit t value x =
   let key = Util.random_key () in
   let contents e = 
       let target = Event.targetGet e in
-      match Event.valueGet target with
+      begin match Event.valueGet target with
         | Some v -> emit (Input (x, v)) 
         | None -> () 
-
+      end ;
   in
   let input_elt = h "input" (vnode_attributes ~key ~value ~oninput: contents ()) [||] in
   let wrapper = h "div" (vnode_attributes ~key ~class_: "input" ()) in
@@ -165,10 +165,11 @@ let render emit state =
         |]
 
     | LocDonate ->
+        let donate = button' "donate" Donate in
         [| header "Donate to BOB"
          ; input_elt (Some "donation message") state.input_fields.donation_memo DonationMemo
          ; input_elt (Some "donation amount") state.input_fields.donation_amount DonationAmount
-         ; row [| nav LocStart |]
+         ; row [| donate; nav LocStart |]
          |]
   
   in h "div" (vnode_attributes ~class_: "main" ()) content
@@ -185,16 +186,13 @@ let run _ =
   let proj = create_projector () in
 
   let handler stim = 
-    let (s1, m, r) = update stim !state in
+    let (s1, m) = update stim !state in
     begin state := s1;
     match m with
       | None -> ()
       | Some (DonateMsg(_, _) as msg) -> 
           Js.log msg ;
-    if r 
-    then begin Js.log "RENDER"; schedule_render proj; end 
-    else ();
-    end;
+    end
   in 
 
   begin Event.register_handler event_bus handler;

@@ -17,7 +17,6 @@ end
 module Event = struct
 
   type event_target = { value: string option } [@@bs.deriving abstract]
-  external focus : event_target -> unit = "focus" [@@bs.send]
 
   type event = { target: event_target  } [@@bs.deriving abstract]
 
@@ -34,6 +33,10 @@ module VDom = struct
 
   (* Generic type to hide details of working with the dom tree *)
   type app_element 
+  type node
+  
+  external dom_node : app_element -> node = "domNode" [@@bs.send]
+  external focus : node -> unit = "focus" [@@bs.send]
 
   type vnode_attributes =
     { class_ : string [@bs.as "class"] [@bs.optional]
