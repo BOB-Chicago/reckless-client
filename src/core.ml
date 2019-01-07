@@ -11,10 +11,17 @@ let update stim state =
   Js.log state;
   match stim with
   | Click (Nav x) -> 
-      ({ state with active_page = x }, None)
+      ({ state with active_page = x }, None, true)
 
   | Click (SetKey x) -> 
-      ({ state with key = x; input_fields = { state.input_fields with key_entry = "" } }, None)
+      let state1 = 
+        { state with key = x
+          ; input_fields =
+            { state.input_fields with key_entry = "" }
+          ; active_page = LocManageKeys
+        }
+      in
+      (state1, None, true)
 
   | Click Donate ->
       let amount = 
@@ -26,13 +33,13 @@ let update stim state =
               with donation_memo = ""
                  ; donation_amount = "" } }
       in
-      (state, Some (DonateMsg (state.input_fields.donation_memo, amount)))
+      (state1, Some (DonateMsg (state.input_fields.donation_memo, amount)), true)
   
   | Click GenRandomKey ->
       let keyBuf = Util.randomBytes 32 in
       let hex = Util.hexEncode keyBuf in
       let state1 = { state with key = Some hex } in
-      (state1, None)
+      (state1, None, true)
 
   | Input (x, s) ->
       let state1 = { state with input_fields =
@@ -42,9 +49,12 @@ let update stim state =
           | DonationAmount -> { state.input_fields with donation_amount = s }
         } 
       in
-      (state1, None)
+      (state1, None, false)
+  
+  | ServerMessage(Confirmation(IdW32(t,v),r_hash)) -> 
+      (state, None, false)
 
-  | _ -> (state, None) ;;
+  | _ -> (state, None, false) ;;
 
 
 (* ~~~~~~~~~~~~~~~~~ *)
@@ -86,22 +96,23 @@ let button emit text t =
 
 let input_ emit t value x = 
   let key = Util.random_key () in
-  let on_input e = 
-        match e |. Event.targetGet |. Event.valueGet with
+  let contents e = 
+      let target = Event.targetGet e in
+      match Event.valueGet target with
         | Some v -> emit (Input (x, v)) 
-        | None -> ()
+        | None -> () 
+
   in
-  let input_elt = h "input" (vnode_attributes ~key ~value ~oninput: on_input ()) [||] in
+  let input_elt = h "input" (vnode_attributes ~key ~value ~oninput: contents ()) [||] in
+  let wrapper = h "div" (vnode_attributes ~key ~class_: "input" ()) in
   match t with
 
-  | Some text ->
-      h "div" (vnode_attributes ~key ~class_: "input" ())
-        [| h "p" (vnode_attributes ()) [| h_text text |]
+    | Some text ->
+        wrapper [| h "p" (vnode_attributes ()) [| h_text text |]
          ; input_elt 
          |]
+    | None -> wrapper [| input_elt |] 
  
-  | None ->
-      input_elt
 
 
 (* ~~~~~~~~~ *)
@@ -139,14 +150,17 @@ let render emit state =
          |] 
 
     | LocEnterKey -> 
+        let enter_key = button' "set key" (SetKey(Some(state.input_fields.key_entry))) in
         [| header "Please enter a new key"
          ; input_elt None state.input_fields.key_entry KeyEntry 
-         ; row [| nav LocStart |] 
+         ; row [| enter_key; nav LocStart |] 
          |]
 
     | LocPaymentRequests -> 
+        let pr_strings = Array.map Format.payment_request state.payment_requests in
+        let col_elts = Array.map par pr_strings in
         [| header "Your payment requests"
-         ; column [||] 
+         ; column col_elts 
          ; row [| nav LocStart |]
         |]
 
@@ -156,6 +170,7 @@ let render emit state =
          ; input_elt (Some "donation amount") state.input_fields.donation_amount DonationAmount
          ; row [| nav LocStart |]
          |]
+  
   in h "div" (vnode_attributes ~class_: "main" ()) content
 
 
@@ -163,18 +178,22 @@ let run _ =
   let event_bus = Event.make_event_bus () in
   let emit = Event.emit_stimulus event_bus in
 
+  let ws_send = Websocket.make_sender emit (Config.config |. Config.ws_urlGet) in
+
   let app = get_element_by_id doc "app" in
   let state = ref empty_state in
   let proj = create_projector () in
 
   let handler stim = 
-    let (s1, m) = update stim !state in
+    let (s1, m, r) = update stim !state in
     begin state := s1;
-    begin match m with
+    match m with
       | None -> ()
-      | Some msg -> Js.log msg 
-    end;
-    schedule_render proj; 
+      | Some (DonateMsg(_, _) as msg) -> 
+          Js.log msg ;
+    if r 
+    then begin Js.log "RENDER"; schedule_render proj; end 
+    else ();
     end;
   in 
 

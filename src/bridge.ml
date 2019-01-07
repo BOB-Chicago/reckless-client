@@ -3,9 +3,22 @@
 
 module Uint8Array = Js.Typed_array.Uint8Array
 
+module Config = struct
+
+  type app_config = 
+    { node_uri : string 
+    ; ws_url : string 
+    } [@@bs.deriving abstract]
+
+  external config : app_config = "app_config" [@@bs.val] [@@bs.scope "window"]
+
+end
+
 module Event = struct
 
   type event_target = { value: string option } [@@bs.deriving abstract]
+  external focus : event_target -> unit = "focus" [@@bs.send]
+
   type event = { target: event_target  } [@@bs.deriving abstract]
 
   type event_bus 
@@ -13,7 +26,6 @@ module Event = struct
   external emit_stimulus : event_bus -> Types.stimulus -> unit = "emit" [@@bs.send]
   external register_handler : event_bus -> (Types.stimulus -> unit) -> unit = "register" [@@bs.send]
   external make_event_bus : unit -> event_bus = "makeEventBus" [@@bs.module "./lib"]
-
 
 end
 
@@ -29,6 +41,7 @@ module VDom = struct
     ; value : string [@bs.optional]
     ; onclick: unit -> unit [@bs.optional]
     ; oninput: Event.event -> unit [@bs.optional]
+    ; onchange: Event.event -> unit [@bs.optional]
     } [@@bs.deriving abstract]
 
   type document

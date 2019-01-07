@@ -75,6 +75,7 @@ type stimulus =
 type payment_request =
   { r_hash: string
   ; memo: string
+  ; date: Js.Date.t
   ; amount: int
   ; paid: bool
   } [@@bs.deriving jsConverter]
