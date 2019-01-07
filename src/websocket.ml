@@ -17,7 +17,7 @@ let make_sender emit url =
     | Ok(x) -> 
         (* look for a reference *)
         begin match x.ref with
-        | None -> Types.ServerMessage(x.body) |> emit
+        | None -> x.body |> emit
 
         | Some(n) -> 
 

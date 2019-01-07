@@ -177,13 +177,18 @@ let render emit state =
 
 let run _ =
   let event_bus = Event.make_event_bus () in
-  let emit = Event.emit_stimulus event_bus in
+  let proj = create_projector () in
 
-  let ws_send = Websocket.make_sender emit (Config.config |. Config.ws_urlGet) in
+  let emit = Event.emit_stimulus event_bus in
+  let ws_emit sm =
+    emit (ServerMessage sm);
+    schedule_render proj;
+  in
+
+  let ws_send = Websocket.make_sender ws_emit (Config.config |. Config.ws_urlGet) in
 
   let app = get_element_by_id doc "app" in
   let state = ref empty_state in
-  let proj = create_projector () in
 
   let handler stim = 
     let (s1, m) = update stim !state in
