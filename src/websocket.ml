@@ -10,7 +10,7 @@ let makeSender url =
 
   let on_open _ = ready := true in
 
-  let on_message (msg : Bridge.websocket_message) = 
+  let on_message (msg : Bridge.WebSocket.websocket_message) = 
     match Serialization.parse_server_message msg.data with
     | Ok(x) -> 
         begin match x.ref with
@@ -29,7 +29,9 @@ let makeSender url =
 
   let on_close _ = ready := false in
 
-  let sendString = Bridge.get_websocket_send { url; on_open; on_message; on_close } in
+  let sendString = 
+    Bridge.WebSocket.get_websocket_send { url; on_open; on_message; on_close } 
+  in
 
   fun outboundMessage f ->
 

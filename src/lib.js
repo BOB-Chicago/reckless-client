@@ -1,5 +1,8 @@
+const types = require("./bridge.bs");
+
 // Create a function that can be used to send websocket messages 
-const getWebSocketSend = config => {
+const getWebSocketSend = config_ => {
+	const config = websocket_configToJs(config_);
 	const ws = new WebSocket(config.url);
 	ws.onopen = config.on_open;
 	ws.onclose = config.on_close;
@@ -12,7 +15,7 @@ const getWebSocketSend = config => {
 // We rely on the browser's event bus
 const makeEventBus = () => {
 	const register = f => {
-		const h = e => f(e.target, e.payload);
+		const h = e => f(e.payload);
 		document.addEventListener("appEvent", h);
 	}
 

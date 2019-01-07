@@ -1,5 +1,6 @@
 open Types
 open Bridge
+open Bridge.VDom
 
 (* ~~~~~~~~~ *)
 (* App logic *)
@@ -13,12 +14,17 @@ let update stim state =
       ({ state with active_page = x }, None)
 
   | Click (SetKey x) -> 
-      ({ state with key = x }, None)
+      ({ state with key = x; input_fields = { state.input_fields with key_entry = "" } }, None)
 
   | Click Donate ->
       let amount = 
         let f = Js.Float.fromString state.input_fields.donation_amount in
         Js.Math.floor f
+      in
+      let state1 = { state with input_fields = 
+            { state.input_fields 
+              with donation_memo = ""
+                 ; donation_amount = "" } }
       in
       (state, Some (DonateMsg (state.input_fields.donation_memo, amount)))
   
@@ -58,33 +64,38 @@ let header text =
   h "h1" (vnode_attributes ()) [| h_text text |]
 
 let row =  
-  let atts = vnode_attributes ~class_: "row" () in 
+  let key = Util.random_key () in
+  let atts = vnode_attributes ~key ~class_: "row" () in 
   h "div" atts 
 
 let column = 
-  let atts = vnode_attributes ~class_: "column" () in 
+  let key = Util.random_key () in
+  let atts = vnode_attributes ~key ~class_: "column" () in 
   h "div" atts
 
 let par text = 
-  let atts = vnode_attributes ~class_: "simple" () in 
+  let key = Util.random_key () in
+  let atts = vnode_attributes ~key ~class_: "simple" () in 
   h "p" atts [| h_text text |]
 
 let button emit text t = 
+  let key = Util.random_key () in
   let on_click = fun _ -> emit (Click t) in
-  let atts = vnode_attributes ~class_:"button" ~onclick:on_click () in
+  let atts = vnode_attributes ~key ~class_:"button" ~onclick:on_click () in
   h "div" atts [| h_text text |]
 
-let input_ emit t x = 
+let input_ emit t value x = 
+  let key = Util.random_key () in
   let on_input e = 
-        match e.target.value with
+        match e |. Event.targetGet |. Event.valueGet with
         | Some v -> emit (Input (x, v)) 
         | None -> ()
   in
-  let input_elt = h "input" (vnode_attributes ~oninput: on_input ()) [||] in
+  let input_elt = h "input" (vnode_attributes ~key ~value ~oninput: on_input ()) [||] in
   match t with
 
   | Some text ->
-      h "div" (vnode_attributes ~class_: "input" ())
+      h "div" (vnode_attributes ~key ~class_: "input" ())
         [| h "p" (vnode_attributes ()) [| h_text text |]
          ; input_elt 
          |]
@@ -107,6 +118,7 @@ let render emit state =
 
     | LocStart ->  
         [| header "BOB chicago #reckless" 
+         ; par "This is BOB's demo site"
          ; row [| nav LocDonate; nav LocPaymentRequests;  nav LocManageKeys |] 
          |]
 
@@ -120,14 +132,15 @@ let render emit state =
          |]
 
     | LocShowKey -> 
+        let Some key = state.key in 
         [| header "Your current key"
-         ; let Some key = state.key in par key
+         ; par key
          ; row [| forgetKey; nav LocStart |] 
          |] 
 
     | LocEnterKey -> 
         [| header "Please enter a new key"
-         ; input_elt None KeyEntry
+         ; input_elt None state.input_fields.key_entry KeyEntry 
          ; row [| nav LocStart |] 
          |]
 
@@ -139,17 +152,21 @@ let render emit state =
 
     | LocDonate ->
         [| header "Donate to BOB"
-         ; input_elt (Some "donation message") DonationMemo
-         ; input_elt (Some "donation amount") DonationAmount
+         ; input_elt (Some "donation message") state.input_fields.donation_memo DonationMemo
+         ; input_elt (Some "donation amount") state.input_fields.donation_amount DonationAmount
          ; row [| nav LocStart |]
          |]
   in h "div" (vnode_attributes ~class_: "main" ()) content
 
 
 let run _ =
-  let event_bus = make_event_bus () in
+  let event_bus = Event.make_event_bus () in
+  let emit = Event.emit_stimulus event_bus in
+
+  let app = get_element_by_id doc "app" in
   let state = ref empty_state in
   let proj = create_projector () in
+
   let handler stim = 
     let (s1, m) = update stim !state in
     begin state := s1;
@@ -160,9 +177,9 @@ let run _ =
     schedule_render proj; 
     end;
   in 
-  begin event_bus.register handler;
-  let app = get_element_by_id doc "app" in
-  replace proj app (fun _ -> render event_bus.emit !state);
+
+  begin Event.register_handler event_bus handler;
+  replace proj app (fun _ -> render emit !state);
   schedule_render proj;
   end
 

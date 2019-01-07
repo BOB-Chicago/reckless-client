@@ -5,7 +5,8 @@
     "clean": "bsb -clean-world",
     "build": "bsb -make-world",
     "bundle": "webpack",
-		"start:dev": "webpack-dev-server",
+    "make": "bsb -make-world && webpack",
+    "start:dev": "webpack-dev-server",
     "watch": "bsb -make-world -w"
   },
   "keywords": [
