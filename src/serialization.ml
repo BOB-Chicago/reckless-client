@@ -121,3 +121,21 @@ let decode_payment_request str =
       | _ -> Error "payment_request : field"
       end
   | _ -> Error "payment_request : type"
+
+(* app state *)
+
+let encode_app_state state = 
+  let prs = 
+    Array.map encode_payment_request state.payment_requests |. Js.Json.array
+  in
+  let key = 
+    match Js.Nullable.toOption state.key with
+    | Some s -> Js.Json.string s
+    | None -> Js.Json.null
+  in
+  let spec = 
+    [| ("key", key)
+     ; ("payment_requests", prs)
+    |]
+  in
+  Js.Dict.fromArray spec |. Js.Json.object_
