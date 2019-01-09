@@ -4,6 +4,8 @@ open Js.Result
 
 module Option = Belt.Option
 
+(* tagged id *)
+
 let decodeTaggedId raw =
   match classify raw with
   | JSONObject obj -> 
@@ -19,6 +21,8 @@ let decodeTaggedId raw =
       end
 
   | _ -> None 
+
+(* server message *)
 
 let parse_server_message msg =
   (* nonce & ref fields *)
@@ -77,7 +81,7 @@ let parse_server_message msg =
 
   | _ -> Error("server message: type")
 
-
+(* client message *)
 
 let encode_client_message msg =
   match msg with
@@ -89,3 +93,31 @@ let encode_client_message msg =
         |]
       in
       Js.Dict.fromArray spec
+
+(* payment request *)
+
+let encode_payment_request pr =
+  let spec = 
+    [| ("r_hash", Js.Json.string pr.r_hash)
+     ; ("memo", Js.Json.string pr.memo)
+     ; ("date", Js.Date.toString pr.date |. Js.Json.string)
+     ; ("amount", Js.Int.toFloat pr.amount |. Js.Json.number)
+     ; ("paid", Js.Json.boolean pr.paid )
+     |]
+  in
+  Js.Dict.fromArray spec |. Js.Json.object_  
+
+let decode_payment_request str =
+  match classify (parseExn str) with
+  | JSONObject obj -> 
+      let rh = Js.Dict.get obj "r_hash" |. Option.flatMap decodeString in
+      let m = Js.Dict.get obj "memo" |. Option.flatMap decodeString  in
+      let d = Js.Dict.get obj "date" |. Option.flatMap decodeString in
+      let a = Js.Dict.get obj "amount" |. Option.flatMap decodeNumber |. Option.map Js.Math.floor in
+      let p = Js.Dict.get obj "paid" |. Option.flatMap decodeBoolean in
+      begin match (rh, m, d, a, p) with
+      | ( Some r_hash, Some memo, Some dateString, Some amount, Some paid) ->
+          Ok { r_hash; memo; date = Js.Date.fromString dateString; amount; paid }
+      | _ -> Error "payment_request : field"
+      end
+  | _ -> Error "payment_request : type"
