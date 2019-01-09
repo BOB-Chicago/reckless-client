@@ -43,7 +43,7 @@ let parse_server_message msg =
 
   match classify (parseExn msg) with
   | JSONObject obj -> 
-      match Js.Dict.get obj "tag" with
+      begin match Js.Dict.get obj "tag" with
       | None -> Error("server message / tag")
       | Some rawTag -> 
           begin match classify rawTag with
@@ -78,6 +78,7 @@ let parse_server_message msg =
 
           | _ -> Error("server message / tag : type")
           end
+      end
 
   | _ -> Error("server message: type")
 

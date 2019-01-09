@@ -147,9 +147,9 @@ let render emit state =
          |]
 
     | LocShowKey -> 
-        let Some key = Js.Nullable.toOption state.key in 
+        let keyMsg = Belt.Option.getWithDefault (Js.Nullable.toOption state.key) "NO_KEY" in 
         [| header "Your current key"
-         ; par key
+         ; par keyMsg
          ; row [| forgetKey; nav LocStart |] 
          |] 
 
