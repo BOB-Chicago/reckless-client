@@ -4,6 +4,8 @@ open Bridge.VDom
 
 module Option = Belt.Option
 
+let sync_message x = Js.Promise.then_ (fun h -> Js.Promise.resolve (Sync h)) (Util.derive_key x "/sync") 
+
 (* ~~~~~~~~~ *)
 (* App logic *)
 (* ~~~~~~~~~ *)
@@ -15,9 +17,9 @@ let update stim state =
   | Click (Nav x) -> 
       ({ state with active_page = x }, None)
 
-  | Click (SetKey x) -> 
+  | Click (SetKey (Some x)) -> 
       let state1 = 
-        { state with key = Js.Nullable.fromOption x
+        { state with key = Js.Nullable.return x
           ; input_fields =
             { state.input_fields with key_entry = "" }
           ; active_page = LocManageKeys
@@ -38,8 +40,8 @@ let update stim state =
       (state1, Some (DonateMsg (state.input_fields.donation_memo, amount)))
   
   | Click GenRandomKey ->
-      let keyBuf = Util.randomBytes 32 in
-      let hex = Util.hexEncode keyBuf in
+      let keyBuf = Util.random_bytes 32 in
+      let hex = Util.hex_encode keyBuf in
       let state1 = { state with key = Js.Nullable.return hex } in
       (state1, None)
 
@@ -185,6 +187,9 @@ let render emit state =
 (* ~~~~~~~~~~~~~ *)
 
 let run _ =
+  
+  (* set up resources *)
+
   let event_bus = Event.make_event_bus () in
   let proj = create_projector () in
 
@@ -197,7 +202,7 @@ let run _ =
 
   let ws_send = Websocket.make_sender ws_emit (Config.config |. Config.ws_urlGet) in
 
-  let app = get_element_by_id doc "app" in
+  (* load state, if possible *)
 
   let pulled_state = LocalStorage.get "state" in
   let parsed_state = Option.map (Js.Nullable.toOption pulled_state) Serialization.decode_app_state in
@@ -205,6 +210,8 @@ let run _ =
     | Some (Ok s) -> ref s
     | _ -> ref empty_state
   in
+
+  (* capture resources in handler *)
 
   let handler stim = 
     let (s1, m) = update stim !state in
@@ -218,7 +225,10 @@ let run _ =
     end
   in 
 
+  (* start the app *)
+
   begin Event.register_handler event_bus handler;
+  let app = get_element_by_id doc "app" in
   replace proj app (fun _ -> render emit !state);
   schedule_render proj;
   end

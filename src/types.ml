@@ -58,6 +58,7 @@ type 'a session_message =
 
 type client_message =
   | DonateMsg of string * int
+  | Sync of string
 
 (* ~~~~~~~ *)
 (* Stimuli *)
