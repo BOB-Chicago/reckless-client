@@ -2,6 +2,8 @@ open Types
 open Bridge
 open Bridge.VDom
 
+module Option = Belt.Option
+
 (* ~~~~~~~~~ *)
 (* App logic *)
 (* ~~~~~~~~~ *)
@@ -196,11 +198,19 @@ let run _ =
   let ws_send = Websocket.make_sender ws_emit (Config.config |. Config.ws_urlGet) in
 
   let app = get_element_by_id doc "app" in
-  let state = ref empty_state in
+
+  let pulled_state = LocalStorage.get "state" in
+  let parsed_state = Option.map (Js.Nullable.toOption pulled_state) Serialization.decode_app_state in
+  let state = match parsed_state with
+    | Some (Ok s) -> ref s
+    | _ -> ref empty_state
+  in
 
   let handler stim = 
     let (s1, m) = update stim !state in
-    begin state := s1;
+    begin state := s1 ;
+    let encoded = Serialization.encode_app_state s1 in
+    LocalStorage.put "state" (Js.Json.stringify encoded) ;
     match m with
       | None -> ()
       | Some (DonateMsg(_, _) as msg) -> 
