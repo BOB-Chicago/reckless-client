@@ -140,3 +140,26 @@ let encode_app_state state =
     |]
   in
   Js.Dict.fromArray spec |. Js.Json.object_
+
+let decode_app_state str = 
+  match classify (parseExn str) with
+    | JSONObject obj ->
+        let k = Js.Dict.get obj "key" |. Option.flatMap decodeString |. Js.Nullable.fromOption in
+        let decode_pr x = match Option.map (decodeString x) decode_payment_request with
+          | Some (Ok pr) -> Some pr
+          | _ -> None
+        in
+        let raw_array = Js.Dict.get obj "payment_request" |. Option.flatMap decodeArray in
+        let pr_result = Option.map raw_array (Array.map decode_pr) in
+        let step xs z = match z with
+          | Some x -> Belt.List.add xs x
+          | None -> xs
+        in
+        let prs = match pr_result with
+          | None -> [||]
+          | Some xs -> Array.of_list (Js.Array.reduce step [] xs)
+        in
+        Ok { empty_state with key = k; payment_requests = prs }
+
+    | _ -> Error "app_state : type"
+
