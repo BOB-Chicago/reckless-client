@@ -61,6 +61,10 @@ let update stim state =
 (* Interface helpers *)
 (* ~~~~~~~~~~~~~~~~~ *)
 
+let inputName k = match k with
+  | KeyEntry -> "key_entry"
+  | DonationMemo -> "donation_memo"
+  | DonationAmount -> "donation_amount"
 
 let navText p = match p with
   | LocStart -> ">> start page"
@@ -95,7 +99,7 @@ let button emit text t =
   h "div" atts [| h_text text |]
 
 let input_ emit t value x = 
-  let key = Util.random_key () in
+  let key = inputName x in
   let contents e = 
       let target = Event.targetGet e in
       begin match Event.valueGet target with
