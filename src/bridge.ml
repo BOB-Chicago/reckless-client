@@ -64,6 +64,8 @@ end
 
 module WebSocket = struct
 
+  type websocket
+
   type websocket_message = { data: string }
 
   type websocket_config =
@@ -73,9 +75,12 @@ module WebSocket = struct
     ; on_message: websocket_message -> unit
     } [@@bs.deriving jsConverter]
 
-  external get_websocket_send : websocket_config -> string -> unit = "getWebSocketSend" [@@bs.module "./lib"]
+  external get_websocket : websocket_config -> websocket = "getWebSocket" [@@bs.module "./lib"]
+  external send : websocket -> string -> unit = "send" [@@bs.send]
 
 end
+
+let ws_config_to_js = WebSocket.websocket_configToJs
 
 module Crypto = struct
 
@@ -86,3 +91,10 @@ module Crypto = struct
   external digest : string -> Js.Typed_array.ArrayBuffer.t -> Js.Typed_array.ArrayBuffer.t Js.Promise.t = "digest" [@@bs.val][@@bs.scope "window", "crypto", "subtle"]
 
 end 
+
+module LocalStorage = struct
+
+  external get : string -> string Js.Nullable.t = "getItem" [@@bs.val] [@@bs.scope "window", "localStorage"]
+  external put : string -> string -> unit = "setItem" [@@bs.val] [@@bs.scope "window", "localStorage"]
+
+end

@@ -93,7 +93,7 @@ type user_provided_data =
 
 type app_state =
   { active_page: app_location
-  ; key: string option
+  ; key: string Js.Nullable.t
   ; payment_requests: payment_request array
   ; payment_request_cursor: int
   ; input_fields: user_provided_data 
@@ -101,7 +101,7 @@ type app_state =
 
 let empty_state =
   { active_page = LocStart
-  ; key = None
+  ; key = Js.Nullable.null
   ; payment_requests = [||]
   ; payment_request_cursor = 0
   ; input_fields =

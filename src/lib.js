@@ -1,14 +1,14 @@
-const types = require("./bridge.bs");
+const bridge = require("./bridge.bs");
 
 // Create a function that can be used to send websocket messages 
-const getWebSocketSend = config_ => {
-	const config = websocket_configToJs(config_);
+const getWebSocket = config_ => {
+	const config = bridge.ws_config_to_js(config_);
+	console.log("Connecting to " + config.url);
 	const ws = new WebSocket(config.url);
 	ws.onopen = config.on_open;
 	ws.onclose = config.on_close;
 	ws.onmessage = config.on_message;
-	send = ws.send.bind(ws);
-	return send;
+	return ws;
 }
 
 
@@ -48,9 +48,8 @@ const uint8ArrayConcat = xs => {
 const encoder = new TextEncoder();
 const encode = encoder.encode.bind(encoder); 
 
-
 module.exports = {
-	getWebSocketSend: getWebSocketSend,
+	getWebSocket: getWebSocket,
 	makeEventBus: makeEventBus,
 	uint8ArrayConcat: uint8ArrayConcat,
 	encode: encode

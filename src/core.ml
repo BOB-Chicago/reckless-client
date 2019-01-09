@@ -15,7 +15,7 @@ let update stim state =
 
   | Click (SetKey x) -> 
       let state1 = 
-        { state with key = x
+        { state with key = Js.Nullable.fromOption x
           ; input_fields =
             { state.input_fields with key_entry = "" }
           ; active_page = LocManageKeys
@@ -38,7 +38,7 @@ let update stim state =
   | Click GenRandomKey ->
       let keyBuf = Util.randomBytes 32 in
       let hex = Util.hexEncode keyBuf in
-      let state1 = { state with key = Some hex } in
+      let state1 = { state with key = Js.Nullable.return hex } in
       (state1, None)
 
   | Input (x, s) ->
@@ -139,7 +139,7 @@ let render emit state =
 
     | LocManageKeys ->  
         [| header "Manage your key"
-         ; match state.key with 
+         ; match Js.Nullable.toOption state.key with 
            | None -> 
               row [| nav LocEnterKey; button' "generate a random key" GenRandomKey; nav LocStart |]
            | Some _ -> 
@@ -147,7 +147,7 @@ let render emit state =
          |]
 
     | LocShowKey -> 
-        let Some key = state.key in 
+        let Some key = Js.Nullable.toOption state.key in 
         [| header "Your current key"
          ; par key
          ; row [| forgetKey; nav LocStart |] 
@@ -178,6 +178,9 @@ let render emit state =
   
   in h "div" (vnode_attributes ~class_: "main" ()) content
 
+(* ~~~~~~~~~~~~~ *)
+(* Start the app *)
+(* ~~~~~~~~~~~~~ *)
 
 let run _ =
   let event_bus = Event.make_event_bus () in
@@ -185,8 +188,9 @@ let run _ =
 
   let emit = Event.emit_stimulus event_bus in
   let ws_emit sm =
-    emit (ServerMessage sm);
-    schedule_render proj;
+    Js.log sm ;
+    emit (ServerMessage sm) ;
+    schedule_render proj
   in
 
   let ws_send = Websocket.make_sender ws_emit (Config.config |. Config.ws_urlGet) in
