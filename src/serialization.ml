@@ -100,6 +100,7 @@ let encode_client_message msg =
 let encode_payment_request pr =
   let spec = 
     [| ("r_hash", Js.Json.string pr.r_hash)
+     ; ("req", Js.Json.string pr.req)
      ; ("memo", Js.Json.string pr.memo)
      ; ("date", Js.Date.toString pr.date |. Js.Json.string)
      ; ("amount", Js.Int.toFloat pr.amount |. Js.Json.number)
@@ -112,13 +113,14 @@ let decode_payment_request str =
   match classify (parseExn str) with
   | JSONObject obj -> 
       let rh = Js.Dict.get obj "r_hash" |. Option.flatMap decodeString in
+      let r = Js.Dict.get obj "req" |. Option.flatMap decodeString in
       let m = Js.Dict.get obj "memo" |. Option.flatMap decodeString  in
       let d = Js.Dict.get obj "date" |. Option.flatMap decodeString in
       let a = Js.Dict.get obj "amount" |. Option.flatMap decodeNumber |. Option.map Js.Math.floor in
       let p = Js.Dict.get obj "paid" |. Option.flatMap decodeBoolean in
-      begin match (rh, m, d, a, p) with
-      | ( Some r_hash, Some memo, Some dateString, Some amount, Some paid) ->
-          Ok { r_hash; memo; date = Js.Date.fromString dateString; amount; paid }
+      begin match (rh, r, m, d, a, p) with
+      | ( Some r_hash, Some req, Some memo, Some dateString, Some amount, Some paid) ->
+          Ok { r_hash; memo; req; date = Js.Date.fromString dateString; amount; paid }
       | _ -> Error "payment_request : field"
       end
   | _ -> Error "payment_request : type"

@@ -66,7 +66,7 @@ type client_message =
 (* ~~~~~~~ *)
 
 type stimulus =
-  | ServerMessage of server_message
+  | PushMessage of server_message
   | Click of click_target
   | Input of input_field * string
 
@@ -74,11 +74,14 @@ type stimulus =
 (* effects kit *)
 (* ~~~~~~~~~~~ *)
 
-type effects_lang =
+type 's effects_lang =
   | NoOp
-  | SendMsg of client_message
-  | WithDerivation of string * (string -> effects_lang)
-  | WithPaymentReq of string * int * (string -> string -> effects_lang)
+  | SendMsg of client_message * (server_message -> 's effects_lang)
+  | StateUpdate of ('s -> 's) * 's effects_lang
+  | WithDerivation of string * (string -> 's effects_lang)
+  | WithPaymentReq of string * int * (string -> string -> 's effects_lang)
+  | WithState of ('s -> 's effects_lang)
+
 
 (* ~~~~~~~~~~ *)
 (* Data model *)
@@ -86,6 +89,7 @@ type effects_lang =
 
 type payment_request =
   { r_hash: string
+  ; req: string
   ; memo: string
   ; date: Js.Date.t
   ; amount: int
