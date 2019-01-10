@@ -47,6 +47,7 @@ type tagged_id =
 type server_message =
   | Ack
   | Object
+  (* pr, r_hash *)
   | PaymentRequest of string * string 
   | Confirmation of tagged_id * string 
 
@@ -68,6 +69,16 @@ type stimulus =
   | ServerMessage of server_message
   | Click of click_target
   | Input of input_field * string
+
+(* ~~~~~~~~~~~ *)
+(* effects kit *)
+(* ~~~~~~~~~~~ *)
+
+type effects_lang =
+  | NoOp
+  | SendMsg of client_message
+  | WithDerivation of string * (string -> effects_lang)
+  | WithPaymentReq of string * int * (string -> string -> effects_lang)
 
 (* ~~~~~~~~~~ *)
 (* Data model *)

@@ -6,6 +6,9 @@ module Option = Belt.Option
 
 let sync_message x = Js.Promise.then_ (fun h -> Js.Promise.resolve (Sync h)) (Util.derive_key x "/sync") 
 
+let send_sync_message = 
+  WithDerivation("/sync", fun x -> SendMsg (Sync x))
+
 (* ~~~~~~~~~ *)
 (* App logic *)
 (* ~~~~~~~~~ *)
@@ -15,7 +18,7 @@ let update stim state =
   Js.log state;
   match stim with
   | Click (Nav x) -> 
-      ({ state with active_page = x }, None)
+      ({ state with active_page = x }, NoOp)
 
   | Click (SetKey (Some x)) -> 
       let state1 = 
@@ -25,7 +28,7 @@ let update stim state =
           ; active_page = LocManageKeys
         }
       in
-      (state1, None)
+      (state1, send_sync_message)
 
   | Click Donate ->
       let amount = 
@@ -37,13 +40,13 @@ let update stim state =
               with donation_memo = ""
                  ; donation_amount = "" } }
       in
-      (state1, Some (DonateMsg (state.input_fields.donation_memo, amount)))
+      (state1, NoOp)
   
   | Click GenRandomKey ->
       let keyBuf = Util.random_bytes 32 in
       let hex = Util.hex_encode keyBuf in
       let state1 = { state with key = Js.Nullable.return hex } in
-      (state1, None)
+      (state1, send_sync_message)
 
   | Input (x, s) ->
       let state1 = { state with input_fields =
@@ -53,12 +56,15 @@ let update stim state =
           | DonationAmount -> { state.input_fields with donation_amount = s }
         } 
       in
-      (state1, None)
+      (state1, NoOp)
   
   | ServerMessage(Confirmation(IdW32(t,v),r_hash)) -> 
-      (state, None)
+      let mark pr = if pr.r_hash == r_hash then { pr with paid = true } else pr in
+      let pr1 = Array.map mark (state.payment_requests) in
+      let state1 = { state with payment_requests = pr1 } in
+      (state1, NoOp)
 
-  | _ -> (state, None) ;;
+  | _ -> (state, NoOp) ;;
 
 
 (* ~~~~~~~~~~~~~~~~~ *)
@@ -218,10 +224,7 @@ let run _ =
     begin state := s1 ;
     let encoded = Serialization.encode_app_state s1 in
     LocalStorage.put "state" (Js.Json.stringify encoded) ;
-    match m with
-      | None -> ()
-      | Some (DonateMsg(_, _) as msg) -> 
-          Js.log msg ;
+    Js.log m  ;
     end
   in 
 
