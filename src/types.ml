@@ -36,53 +36,6 @@ type click_target =
   | GenRandomKey
   | SetKey of string option
 
-(* ~~~~~~~~~~~~~~~~~ *)
-(* Protocol messages *)
-(* ~~~~~~~~~~~~~~~~~ *)
-
-type tagged_id = 
-  | IdW32 of string * int
-  | IdB of string * string
-
-type server_message =
-  | Ack
-  | Object
-  (* pr, r_hash *)
-  | PaymentRequest of string * string 
-  | Confirmation of tagged_id * string 
-
-type 'a session_message =
-  { nonce: int
-  ; ref: int option
-  ; body: 'a 
-  } [@@bs.deriving jsConverter]
-
-type client_message =
-  | DonateMsg of string * int
-  | Sync of string
-
-(* ~~~~~~~ *)
-(* Stimuli *)
-(* ~~~~~~~ *)
-
-type stimulus =
-  | PushMessage of server_message
-  | Click of click_target
-  | Input of input_field * string
-
-(* ~~~~~~~~~~~ *)
-(* effects kit *)
-(* ~~~~~~~~~~~ *)
-
-type 's effects_lang =
-  | NoOp
-  | SendMsg of client_message * (server_message -> 's effects_lang)
-  | StateUpdate of ('s -> 's) * 's effects_lang
-  | WithDerivation of string * (string -> 's effects_lang)
-  | WithPaymentReq of string * int * (string -> string -> 's effects_lang)
-  | WithState of ('s -> 's effects_lang)
-
-
 (* ~~~~~~~~~~ *)
 (* Data model *)
 (* ~~~~~~~~~~ *)
@@ -127,4 +80,51 @@ let empty_state =
     }
   }
 
+
+
+(* ~~~~~~~~~~~~~~~~~ *)
+(* Protocol messages *)
+(* ~~~~~~~~~~~~~~~~~ *)
+
+type tagged_id = 
+  | IdW32 of string * int
+  | IdB of string * string
+
+type server_message =
+  | Ack
+  | Object
+  (* pr, r_hash *)
+  | PaymentRequest of string * string 
+  | Confirmation of tagged_id * string 
+
+type 'a session_message =
+  { nonce: int
+  ; ref: int option
+  ; body: 'a 
+  } [@@bs.deriving jsConverter]
+
+type client_message =
+  | DonateMsg of string * int
+  | Sync of string
+
+(* ~~~~~~~~~~~ *)
+(* effects kit *)
+(* ~~~~~~~~~~~ *)
+
+type 's effects_lang =
+  | NoOp
+  | SendMsg of client_message * (server_message -> 's effects_lang)
+  | StateUpdate of ('s -> 's) * 's effects_lang
+  | WithDerivation of string * (string -> 's effects_lang)
+  | WithState of ('s -> 's effects_lang)
+
+(* ~~~~~~~ *)
+(* Stimuli *)
+(* ~~~~~~~ *)
+
+type stimulus =
+  | PushMessage of server_message
+  | Continue of app_state effects_lang
+  | Click of click_target
+  | Input of input_field * string
 

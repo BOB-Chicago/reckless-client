@@ -23,7 +23,7 @@ module Event = struct
   type event_bus 
 
   external emit_stimulus : event_bus -> Types.stimulus -> unit = "emit" [@@bs.send]
-  external register_handler : event_bus -> (Types.stimulus -> unit) -> unit = "register" [@@bs.send]
+  external register_handler : event_bus -> (Types.stimulus -> unit Js.Promise.t) -> unit = "register" [@@bs.send]
   external make_event_bus : unit -> event_bus = "makeEventBus" [@@bs.module "./lib"]
 
 end

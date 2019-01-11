@@ -4,8 +4,6 @@ open Bridge.VDom
 
 module Option = Belt.Option
 
-let sync_message x = Js.Promise.then_ (fun h -> Js.Promise.resolve (Sync h)) (Util.derive_key x "/sync") 
-
 let send_sync_message = 
   WithDerivation("/sync", fun x -> SendMsg (Sync x, fun _ -> NoOp))
 
@@ -38,7 +36,7 @@ let update stim =
         in
         let memo = state.input_fields.donation_memo in
         (* Clear input fields *)
-        let state1 = { state with input_fields = 
+        let clear_input state = { state with input_fields = 
               { state.input_fields 
                 with donation_memo = ""
                    ; donation_amount = "" } }
@@ -47,8 +45,12 @@ let update stim =
           let pr = { req; r_hash; memo; amount; paid = false; date = Js.Date.make () } in
           Js.Array.push pr s.payment_requests ; s
         in
-        let op = WithPaymentReq (memo, amount, (fun pr hash -> StateUpdate (put_req pr hash, NoOp))) in 
-        StateUpdate (state1, op)
+        let handler = function
+          | PaymentRequest (req, r_hash) -> StateUpdate (put_req req r_hash, NoOp)
+          | _ -> NoOp
+        in
+        let op = SendMsg(DonateMsg(memo,amount), handler) in
+        StateUpdate (clear_input, op)
       )
   
   | Click GenRandomKey ->
@@ -75,6 +77,8 @@ let update stim =
       in
       StateUpdate (u, NoOp)
 
+  | Continue eff -> eff
+
   | _ -> NoOp ;;
 
 
@@ -82,12 +86,25 @@ let update stim =
 (* Effect handling *)
 (* ~~~~~~~~~~~~~~~ *)
 
-let runEffect state eff = match eff with 
-  | SendMsg (msg, handler) -> _
+let rec runEffect send state eff = match eff with 
+  | SendMsg (msg, handler) -> 
+      let next _ = Js.Promise.resolve state in
+      Js.Promise.then_ next (send msg handler)
+
   | StateUpdate (updater, next) -> 
-  | WithDerivation (path, handler) -> _
-  | WithPaymentReq (memo, amount, handler) -> _
-  | NoOp -> ()
+      runEffect send (updater state) next
+
+  | WithDerivation (path, handler) ->
+      begin match Js.Nullable.toOption state.key with
+      | None -> Js.Promise.resolve state 
+      | Some key -> 
+          let next dk = runEffect send state (handler dk) in
+          Js.Promise.then_ next (Util.derive_key key path)
+      end
+
+  | WithState handler -> runEffect send state (handler state)
+
+  | NoOp -> Js.Promise.resolve state 
 
 
 (* ~~~~~~~~~~~~~~~~~ *)
@@ -229,7 +246,13 @@ let run _ =
     schedule_render proj
   in
 
+  (* senders *)
+
   let ws_send = Websocket.make_sender ws_emit (Config.config |. Config.ws_urlGet) in
+  let ws_send_promise msg = 
+    let f ~resolve:(rv : Types.server_message -> unit [@bs]) ~reject:_ = ws_send msg (Some rv) in
+    Js.Promise.make f
+  in
 
   (* load state, if possible *)
 
@@ -242,13 +265,22 @@ let run _ =
 
   (* capture resources in handler *)
 
+  let app_send msg h =
+    let next x = Js.Promise.resolve (emit (Continue(h x))) in
+    Js.Promise.then_ next (ws_send_promise msg)
+  in
+
   let handler stim = 
-    let (s1, m) = update stim !state in
-    begin state := s1 ;
-    let encoded = Serialization.encode_app_state s1 in
-    LocalStorage.put "state" (Js.Json.stringify encoded) ;
-    Js.log m ;
-    end
+    let action = update stim in
+    let s1_p = runEffect app_send !state action in
+    let h s = 
+      begin state := s ;
+      let encoded = Serialization.encode_app_state s in
+      LocalStorage.put "state" (Js.Json.stringify encoded) ;
+      Js.Promise.resolve ()
+      end
+    in
+    Js.Promise.then_ h s1_p
   in 
 
   (* start the app *)

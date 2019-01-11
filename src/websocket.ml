@@ -1,5 +1,7 @@
 open Bridge
 
+type app_cb = Types.server_message -> unit [@bs]
+
 let make_sender emit url = 
 
   let nonce = ref 0 in
@@ -8,7 +10,7 @@ let make_sender emit url =
     nonce := n+1; n
   in
   let ready = ref false in
-  let callbacks = Hashtbl.create 350 in 
+  let callbacks : (int, app_cb) Hashtbl.t = Hashtbl.create 350 in 
   let msg_buffer = Queue.create () in
 
   let on_open _ = ready := true in
@@ -26,8 +28,10 @@ let make_sender emit url =
             if Hashtbl.mem callbacks n 
             then 
               (* there is a reference and a registered callback *)
-              begin Hashtbl.find callbacks n x.body; 
-              Hashtbl.remove callbacks n
+              let cb = Hashtbl.find callbacks n in
+              begin 
+                cb x.body [@bs] ; 
+                Hashtbl.remove callbacks n 
               end
             else ()
         end
