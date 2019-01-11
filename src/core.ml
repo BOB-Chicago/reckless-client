@@ -147,6 +147,7 @@ let navText p = match p with
   | LocEnterKey -> "enter a new key"
   | LocDonate -> "donate" 
   | LocPaymentRequests -> "payment requests"
+  | LocBlobUpload -> "data upload"
 
 let header text =  
   h "h1" (vnode_attributes ()) [| h_text text |]
@@ -248,6 +249,13 @@ let render emit state =
          ; input_elt (Some "donation message") state.input_fields.donation_memo DonationMemo
          ; input_elt (Some "donation amount") state.input_fields.donation_amount DonationAmount
          ; row [| donate; nav LocStart |]
+         |]
+
+    | LocBlobUpload ->
+        let upload = button' "upload" UploadBlob in
+        [| header "Upload raw binary data"
+         ; input_elt (Some "enter data") state.input_fields.blob_paste BlobPaste
+         ; row [| upload; nav LocStart |]
          |]
   
   in h "div" (vnode_attributes ~class_: "main" ()) content

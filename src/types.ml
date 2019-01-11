@@ -19,6 +19,7 @@ type app_location =
   | LocShowKey
   | LocPaymentRequests
   | LocDonate
+  | LocBlobUpload
 
 type input_field =
   | KeyEntry
