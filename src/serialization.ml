@@ -7,18 +7,25 @@ module Option = Belt.Option
 (* tagged id *)
 
 let decodeTaggedId raw =
+
+
   match classify raw with
   | JSONObject obj -> 
-      begin match Js.Dict.get obj "type" |. Option.flatMap decodeString with
-      | Some "ContributionT" ->
-          let f v = Types.IdW32("ContributionT", v) in
-          Js.Dict.get obj "value" |. 
-          Option.flatMap decodeNumber |. 
-          Option.map Js.Math.floor |.
-          Option.map f
-
-      | _ -> None 
-      end
+      let tagWith t = 
+        let f v = Types.IdW32(t, v) in
+        Js.Dict.get obj "value" |. 
+        Option.flatMap decodeNumber |. 
+        Option.map Js.Math.floor |.
+        Option.map f
+      in
+      let decodeTag = function
+        | "ContributionT" -> Some ContributionT
+        | "ItemT" -> Some ItemT
+        | "OrderT" -> Some OrderT
+        | "SurveyT" -> Some SurveyT
+        | _ -> None
+      in
+      Js.Dict.get obj "type" |. Option.flatMap decodeString |. Option.flatMap decodeTag |. Option.flatMap tagWith
 
   | _ -> None 
 
@@ -103,7 +110,6 @@ let encode_payment_request pr =
      ; ("req", Js.Json.string pr.req)
      ; ("memo", Js.Json.string pr.memo)
      ; ("date", Js.Date.toString pr.date |. Js.Json.string)
-     ; ("amount", Js.Int.toFloat pr.amount |. Js.Json.number)
      ; ("paid", Js.Json.boolean pr.paid )
      |]
   in
@@ -116,11 +122,10 @@ let decode_payment_request str =
       let r = Js.Dict.get obj "req" |. Option.flatMap decodeString in
       let m = Js.Dict.get obj "memo" |. Option.flatMap decodeString  in
       let d = Js.Dict.get obj "date" |. Option.flatMap decodeString in
-      let a = Js.Dict.get obj "amount" |. Option.flatMap decodeNumber |. Option.map Js.Math.floor in
       let p = Js.Dict.get obj "paid" |. Option.flatMap decodeBoolean in
-      begin match (rh, r, m, d, a, p) with
-      | ( Some r_hash, Some req, Some memo, Some dateString, Some amount, Some paid) ->
-          Ok { r_hash; memo; req; date = Js.Date.fromString dateString; amount; paid }
+      begin match (rh, r, m, d, p) with
+      | ( Some r_hash, Some req, Some memo, Some dateString, Some paid) ->
+          Ok { r_hash; memo; req; date = Js.Date.fromString dateString; paid }
       | _ -> Error "payment_request : field"
       end
   | _ -> Error "payment_request : type"

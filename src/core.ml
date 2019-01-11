@@ -42,7 +42,7 @@ let update stim =
                    ; donation_amount = "" } }
         in
         let put_req req r_hash s = 
-          let pr = { req; r_hash; memo; amount; paid = false; date = Js.Date.make () } in
+          let pr = { req; r_hash; memo; paid = false; date = Js.Date.make () } in
           Js.Array.push pr s.payment_requests ; s
         in
         let handler = function
@@ -59,12 +59,35 @@ let update stim =
       let u state = { state with key = Js.Nullable.return hex } in
       StateUpdate (u, send_sync_message)
 
+  | Click UploadBlob ->
+      let next blob_key = WithState(fun state ->
+        let clear_blob s = { s with input_fields = { s.input_fields with blob_paste = "" } } in
+
+        let handler = function
+          | PaymentRequest (req, r_hash) -> 
+              let pr = { req; r_hash; memo = "new blob"; paid = false; date = Js.Date.make () } in
+              let new_pr s = Js.Array.push pr s.payment_requests; s in
+              StateUpdate (new_pr,  NoOp)
+
+          | _ -> NoOp
+        in
+
+        let payload = state.input_fields.blob_paste in
+
+        let send_new_blob = SendMsg(NewBlob(payload, blob_key, 7), handler) in
+
+        StateUpdate (clear_blob, send_new_blob)
+        )
+      in
+      WithDerivation("/blob", next)
+
   | Input (x, s) ->
       let u state = { state with input_fields =
           match x with
           | KeyEntry -> { state.input_fields with key_entry = s } 
           | DonationMemo -> { state.input_fields with donation_memo = s }
           | DonationAmount -> { state.input_fields with donation_amount = s }
+          | BlobPaste -> { state.input_fields with blob_paste = s }
         } 
       in
       StateUpdate (u, NoOp)
@@ -115,6 +138,7 @@ let inputName k = match k with
   | KeyEntry -> "key_entry"
   | DonationMemo -> "donation_memo"
   | DonationAmount -> "donation_amount"
+  | BlobPaste -> "blob_paste"
 
 let navText p = match p with
   | LocStart -> ">> start page"

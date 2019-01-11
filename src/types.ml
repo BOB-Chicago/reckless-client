@@ -7,6 +7,7 @@ type app_config =
   ; ws_url: string
   }
 
+
 (* ~~~~~~~~~ *)
 (* Locations *)
 (* ~~~~~~~~~ *)
@@ -21,8 +22,12 @@ type app_location =
 
 type input_field =
   | KeyEntry
+
   | DonationMemo
   | DonationAmount
+
+  | BlobPaste
+
 
 (* ~~~~~~~~~~~~~ *)
 (* Click targets *)
@@ -36,6 +41,9 @@ type click_target =
   | GenRandomKey
   | SetKey of string option
 
+  | UploadBlob
+
+
 (* ~~~~~~~~~~ *)
 (* Data model *)
 (* ~~~~~~~~~~ *)
@@ -45,7 +53,6 @@ type payment_request =
   ; req: string
   ; memo: string
   ; date: Js.Date.t
-  ; amount: int
   ; paid: bool
   } [@@bs.deriving jsConverter]
 
@@ -56,8 +63,11 @@ type payment_request =
 
 type user_provided_data =
   { key_entry: string
+
   ; donation_memo: string
   ; donation_amount: string
+
+  ; blob_paste: string
   }
 
 type app_state =
@@ -77,17 +87,23 @@ let empty_state =
     { key_entry = ""
     ; donation_memo = ""
     ; donation_amount = "" 
+    ; blob_paste = ""
     }
   }
-
 
 
 (* ~~~~~~~~~~~~~~~~~ *)
 (* Protocol messages *)
 (* ~~~~~~~~~~~~~~~~~ *)
 
+type object_type_w32 =
+  | ContributionT
+  | ItemT
+  | OrderT
+  | SurveyT
+
 type tagged_id = 
-  | IdW32 of string * int
+  | IdW32 of object_type_w32 * int
   | IdB of string * string
 
 type server_message =
@@ -105,7 +121,10 @@ type 'a session_message =
 
 type client_message =
   | DonateMsg of string * int
+  | NewBlob of string * string * int
+  | Resolve of tagged_id * string option
   | Sync of string
+
 
 (* ~~~~~~~~~~~ *)
 (* effects kit *)
@@ -117,6 +136,7 @@ type 's effects_lang =
   | StateUpdate of ('s -> 's) * 's effects_lang
   | WithDerivation of string * (string -> 's effects_lang)
   | WithState of ('s -> 's effects_lang)
+
 
 (* ~~~~~~~ *)
 (* Stimuli *)
