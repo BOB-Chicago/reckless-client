@@ -101,6 +101,13 @@ let encode_client_message msg =
         |]
       in
       Js.Dict.fromArray spec
+  | Sync key ->
+      let spec =
+        [| ("tag", string "sync")
+         ; ("key", string key)
+        |]
+      in
+      Js.Dict.fromArray spec
 
 (* payment request *)
 

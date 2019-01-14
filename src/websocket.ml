@@ -13,11 +13,11 @@ let make_sender emit url =
   let callbacks : (int, app_cb) Hashtbl.t = Hashtbl.create 350 in 
   let msg_buffer = Queue.create () in
 
-  let on_open _ = ready := true in
+  let on_open _ = Js.log "connected." ; ready := true in
 
   let on_message (msg : WebSocket.websocket_message) = 
 
-    match Serialization.parse_server_message msg.data with
+    match Serialization.parse_server_message (WebSocket.dataGet msg) with
     | Ok(x) -> 
         (* look for a reference *)
         begin match x.ref with
@@ -49,11 +49,13 @@ let make_sender emit url =
 
     (* deal with queued up messages *)
     let flush_msg_buffer _ = Queue.iter (WebSocket.send ws) msg_buffer; Queue.clear msg_buffer in
-
+    
     (* compute the payload *)
     let cm = Serialization.encode_client_message outboundMessage in
+    
     let n = getNonce () in
-    begin Js.Dict.set cm "nonce" (Js.Json.number (Js.Int.toFloat n));
+
+    Js.Dict.set cm "nonce" (Js.Json.number (Js.Int.toFloat n));
     let payload = Js.Json.stringify (Js.Json.object_ cm) in
     
     match f with
@@ -64,5 +66,4 @@ let make_sender emit url =
     if !ready 
       then begin flush_msg_buffer (); WebSocket.send ws payload; end
       else Queue.add payload msg_buffer
-    end
 

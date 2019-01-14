@@ -18,15 +18,19 @@ let update stim =
       let u state = { state with active_page = x } in
       StateUpdate (u, NoOp)
 
-  | Click (SetKey (Some x)) -> 
+  | Click (SetKey x) -> 
       let u state = 
-        { state with key = Js.Nullable.return x
+        { state with key = Js.Nullable.fromOption x
           ; input_fields =
             { state.input_fields with key_entry = "" }
           ; active_page = LocManageKeys
         }
       in
-      StateUpdate (u, send_sync_message)
+      let next = match x with
+        | Some _ -> send_sync_message
+        | None -> NoOp
+      in
+      StateUpdate (u, next)
 
   | Click Donate ->
       WithState(fun state -> 
@@ -111,13 +115,16 @@ let update stim =
 
 let rec runEffect send state eff = match eff with 
   | SendMsg (msg, handler) -> 
+      Js.log "SendMsg" ;
       let next _ = Js.Promise.resolve state in
-      Js.Promise.then_ next (send msg handler)
+      Js.Promise.then_ next (send msg handler) ;
 
   | StateUpdate (updater, next) -> 
+      Js.log "StateUpdate" ;
       runEffect send (updater state) next
 
   | WithDerivation (path, handler) ->
+      Js.log "WithDerivation" ;
       begin match Js.Nullable.toOption state.key with
       | None -> Js.Promise.resolve state 
       | Some key -> 
@@ -125,9 +132,13 @@ let rec runEffect send state eff = match eff with
           Js.Promise.then_ next (Util.derive_key key path)
       end
 
-  | WithState handler -> runEffect send state (handler state)
+  | WithState handler -> 
+      Js.log "WithState" ;
+      runEffect send state (handler state)
 
-  | NoOp -> Js.Promise.resolve state 
+  | NoOp -> 
+      Js.log "NoOp" ;
+      Js.Promise.resolve state 
 
 
 (* ~~~~~~~~~~~~~~~~~ *)

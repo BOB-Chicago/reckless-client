@@ -66,7 +66,7 @@ module WebSocket = struct
 
   type websocket
 
-  type websocket_message = { data: string }
+  type websocket_message = { data: string } [@@bs.deriving abstract]
 
   type websocket_config =
     { url: string
