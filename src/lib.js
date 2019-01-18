@@ -5,7 +5,7 @@ const getWebSocket = config_ => {
 	const config = bridge.ws_config_to_js(config_);
 	console.log("Connecting to " + config.url);
 	const ws = new WebSocket(config.url);
-	ws.onopen = config.on_open;
+	ws.onopen = () => config.on_open(ws);
 	ws.onclose = config.on_close;
 	ws.onmessage = config.on_message;
 	return ws;

@@ -13,9 +13,14 @@ let make_sender emit url =
   let callbacks : (int, app_cb) Hashtbl.t = Hashtbl.create 350 in 
   let msg_buffer = Queue.create () in
 
-  let on_open _ = Js.log "connected." ; ready := true in
+  (* deal with queued up messages *)
+  let flush_msg_buffer w = Queue.iter (WebSocket.send w) msg_buffer; Queue.clear msg_buffer in
+
+  let on_open w = Js.log "connected." ; ready := true ; flush_msg_buffer w in
 
   let on_message (msg : WebSocket.websocket_message) = 
+
+    Js.log (WebSocket.dataGet msg) ;
 
     match Serialization.parse_server_message (WebSocket.dataGet msg) with
     | Ok(x) -> 
@@ -36,7 +41,7 @@ let make_sender emit url =
             else ()
         end
 
-    | Error(err) -> Js.log err
+    | Error(err) -> "Error: " ^ err |> Js.log
   in
 
   let on_close _ = ready := false in
@@ -46,9 +51,6 @@ let make_sender emit url =
   in
 
   fun outboundMessage f ->
-
-    (* deal with queued up messages *)
-    let flush_msg_buffer _ = Queue.iter (WebSocket.send ws) msg_buffer; Queue.clear msg_buffer in
     
     (* compute the payload *)
     let cm = Serialization.encode_client_message outboundMessage in
@@ -64,6 +66,6 @@ let make_sender emit url =
           Hashtbl.add callbacks n cb ;
 
     if !ready 
-      then begin flush_msg_buffer (); WebSocket.send ws payload; end
+      then begin flush_msg_buffer ws; WebSocket.send ws payload; end
       else Queue.add payload msg_buffer
 

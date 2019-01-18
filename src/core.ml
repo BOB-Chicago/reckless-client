@@ -97,6 +97,7 @@ let update stim =
       StateUpdate (u, NoOp)
   
   | PushMessage(Confirmation(_, r_hash)) -> 
+      Js.log "Confirmation" ;
       let u state =  
         let mark pr = if pr.r_hash == r_hash then { pr with paid = true } else pr in
         let pr1 = Array.map mark (state.payment_requests) in
@@ -104,7 +105,11 @@ let update stim =
       in
       StateUpdate (u, NoOp)
 
-  | Continue eff -> eff
+  | PushMessage Ack ->
+      Js.log "Ack" ; 
+      NoOp
+
+  | Effect eff -> eff
 
   | _ -> NoOp ;;
 
@@ -163,6 +168,10 @@ let navText p = match p with
 let header text =  
   h "h1" (vnode_attributes ()) [| h_text text |]
 
+let link href text =
+  let key = Util.random_key () in
+  h "a" (vnode_attributes ~href ~key ()) [| h_text text |]
+
 let row =  
   let key = Util.random_key () in
   let atts = vnode_attributes ~key ~class_: "row" () in 
@@ -173,10 +182,12 @@ let column =
   let atts = vnode_attributes ~key ~class_: "column" () in 
   h "div" atts
 
-let par text = 
+let parNode xs =
   let key = Util.random_key () in
-  let atts = vnode_attributes ~key ~class_: "simple" () in 
-  h "p" atts [| h_text text |]
+  let atts = vnode_attributes ~key () in 
+  h "p" atts xs
+
+let par text = parNode [| h_text text |]
 
 let button emit text t = 
   let key = Util.random_key () in
@@ -247,10 +258,16 @@ let render emit state =
          |]
 
     | LocPaymentRequests -> 
-        let pr_strings = Array.map Format.payment_request state.payment_requests in
-        let col_elts = Array.map par pr_strings in
+        let fmt pr = 
+          let part1 = 
+            let is_paid = if pr.paid then " PAID" else "" in
+            "(" ^  Js.Date.toString pr.date ^ is_paid ^ "): "
+          in
+          let url = "lightning:" ^ pr.req in
+          parNode [| h_text part1; link url pr.memo |] in
+        let pr_nodes = Array.map fmt state.payment_requests in
         [| header "Your payment requests"
-         ; column col_elts 
+         ; column pr_nodes 
          ; row [| nav LocStart |]
         |]
 
@@ -309,7 +326,7 @@ let run _ =
   (* capture resources in handler *)
 
   let app_send msg h =
-    let next x = Js.Promise.resolve (emit (Continue(h x))) in
+    let next x = Js.Promise.resolve (emit (Effect(h x))) in
     Js.Promise.then_ next (ws_send_promise msg)
   in
 
@@ -329,8 +346,12 @@ let run _ =
   (* start the app *)
 
   begin Event.register_handler event_bus handler;
+
+  Effect send_sync_message |> emit ;
+
   let app = get_element_by_id doc "app" in
   replace proj app (fun _ -> render emit !state);
   schedule_render proj;
+
   end
 

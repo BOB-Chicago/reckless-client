@@ -8,7 +8,6 @@ module Option = Belt.Option
 
 let decodeTaggedId raw =
 
-
   match classify raw with
   | JSONObject obj -> 
       let tagWith t = 
@@ -163,7 +162,7 @@ let decode_app_state str =
           | Some (Ok pr) -> Some pr
           | _ -> None
         in
-        let raw_array = Js.Dict.get obj "payment_request" |. Option.flatMap decodeArray in
+        let raw_array = Js.Dict.get obj "payment_requests" |. Option.flatMap decodeArray in
         let pr_result = Option.map raw_array (Array.map decode_pr) in
         let step xs z = match z with
           | Some x -> Belt.List.add xs x

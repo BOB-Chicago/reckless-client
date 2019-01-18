@@ -145,7 +145,7 @@ type 's effects_lang =
 
 type stimulus =
   | PushMessage of server_message
-  | Continue of app_state effects_lang
+  | Effect of app_state effects_lang
   | Click of click_target
   | Input of input_field * string
 

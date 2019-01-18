@@ -42,6 +42,7 @@ module VDom = struct
     { class_ : string [@bs.as "class"] [@bs.optional]
     ; key : string [@bs.optional]
     ; value : string [@bs.optional]
+    ; href : string [@bs.optional]
     ; onclick: unit -> unit [@bs.optional]
     ; oninput: Event.event -> unit [@bs.optional]
     ; onchange: Event.event -> unit [@bs.optional]
@@ -70,7 +71,7 @@ module WebSocket = struct
 
   type websocket_config =
     { url: string
-    ; on_open: unit -> unit
+    ; on_open: websocket -> unit
     ; on_close: unit -> unit
     ; on_message: websocket_message -> unit
     } [@@bs.deriving jsConverter]
