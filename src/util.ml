@@ -3,6 +3,7 @@ open Bridge.Crypto
 
 module Uint8Array = Js.Typed_array.Uint8Array
 
+
 (* Hex *)
 
 let hex_digits = "0123456789abcdef" 
@@ -55,4 +56,3 @@ let derive_key hex path =
 
 let random_key _ =
   hex_encode (random_bytes 8)
-

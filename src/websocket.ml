@@ -9,6 +9,7 @@ let make_sender emit url =
     let n = !nonce in
     nonce := n+1; n
   in
+
   let ready = ref false in
   let callbacks : (int, app_cb) Hashtbl.t = Hashtbl.create 350 in 
   let msg_buffer = Queue.create () in
@@ -54,7 +55,6 @@ let make_sender emit url =
     
     (* compute the payload *)
     let cm = Serialization.encode_client_message outboundMessage in
-    
     let n = getNonce () in
 
     Js.Dict.set cm "nonce" (Js.Json.number (Js.Int.toFloat n));

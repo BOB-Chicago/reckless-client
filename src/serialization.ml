@@ -121,8 +121,8 @@ let encode_payment_request pr =
   in
   Js.Dict.fromArray spec |. Js.Json.object_  
 
-let decode_payment_request str =
-  match classify (parseExn str) with
+let decode_payment_request json =
+  match classify json with
   | JSONObject obj -> 
       let rh = Js.Dict.get obj "r_hash" |. Option.flatMap decodeString in
       let r = Js.Dict.get obj "req" |. Option.flatMap decodeString in
@@ -158,8 +158,8 @@ let decode_app_state str =
   match classify (parseExn str) with
     | JSONObject obj ->
         let k = Js.Dict.get obj "key" |. Option.flatMap decodeString |. Js.Nullable.fromOption in
-        let decode_pr x = match Option.map (decodeString x) decode_payment_request with
-          | Some (Ok pr) -> Some pr
+        let decode_pr x = match decode_payment_request x with
+          | Ok pr -> Some pr
           | _ -> None
         in
         let raw_array = Js.Dict.get obj "payment_requests" |. Option.flatMap decodeArray in

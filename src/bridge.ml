@@ -3,6 +3,8 @@
 
 module Uint8Array = Js.Typed_array.Uint8Array
 
+(* Application parameters *)
+
 module Config = struct
 
   type app_config = 
@@ -13,6 +15,7 @@ module Config = struct
   external config : app_config = "app_config" [@@bs.val] [@@bs.scope "window"]
 
 end
+
 
 module Event = struct
 
@@ -81,6 +84,7 @@ module WebSocket = struct
 
 end
 
+
 let ws_config_to_js = WebSocket.websocket_configToJs
 
 module Crypto = struct
@@ -92,6 +96,7 @@ module Crypto = struct
   external digest : string -> Js.Typed_array.ArrayBuffer.t -> Js.Typed_array.ArrayBuffer.t Js.Promise.t = "digest" [@@bs.val][@@bs.scope "window", "crypto", "subtle"]
 
 end 
+
 
 module LocalStorage = struct
 

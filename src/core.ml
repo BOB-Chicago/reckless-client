@@ -1,6 +1,6 @@
 open Types
 open Bridge
-open Bridge.VDom
+open Bridge.VDom 
 
 module Option = Belt.Option
 
@@ -11,8 +11,8 @@ let send_sync_message =
 (* App logic *)
 (* ~~~~~~~~~ *)
 
-let update stim =
-  Js.log stim;
+
+let toEffect stim =
   match stim with
   | Click (Nav x) -> 
       let u state = { state with active_page = x } in
@@ -38,22 +38,27 @@ let update stim =
           let f = Js.Float.fromString state.input_fields.donation_amount in
           Js.Math.floor f
         in
-        let memo = state.input_fields.donation_memo in
+        let memo = "[donation] " ^ state.input_fields.donation_memo in
         (* Clear input fields *)
-        let clear_input state = { state with input_fields = 
-              { state.input_fields 
-                with donation_memo = ""
-                   ; donation_amount = "" } }
+        let clear_input s = { s 
+              with active_page = LocPaymentRequests
+              ; input_fields = 
+                { s.input_fields 
+                  with donation_memo = ""
+                     ; donation_amount = "" } 
+              }
         in
         let put_req req r_hash s = 
           let pr = { req; r_hash; memo; paid = false; date = Js.Date.make () } in
-          Js.Array.push pr s.payment_requests ; s
+          Js.Array.push pr s.payment_requests ; s 
         in
         let handler = function
-          | PaymentRequest (req, r_hash) -> StateUpdate (put_req req r_hash, NoOp)
+          | PaymentRequest (req, r_hash) -> 
+              StateUpdate (put_req req r_hash, NoOp)
+
           | _ -> NoOp
         in
-        let op = SendMsg(DonateMsg(memo,amount), handler) in
+        let op = SendMsg(DonateMsg(memo, amount), handler) in
         StateUpdate (clear_input, op)
       )
   
@@ -122,11 +127,12 @@ let rec runEffect send state eff = match eff with
   | SendMsg (msg, handler) -> 
       Js.log "SendMsg" ;
       let next _ = Js.Promise.resolve state in
-      Js.Promise.then_ next (send msg handler) ;
+      send msg handler |> Js.Promise.then_ next
 
   | StateUpdate (updater, next) -> 
       Js.log "StateUpdate" ;
-      runEffect send (updater state) next
+      let s1 = updater state in
+      runEffect send s1 next
 
   | WithDerivation (path, handler) ->
       Js.log "WithDerivation" ;
@@ -144,149 +150,6 @@ let rec runEffect send state eff = match eff with
   | NoOp -> 
       Js.log "NoOp" ;
       Js.Promise.resolve state 
-
-
-(* ~~~~~~~~~~~~~~~~~ *)
-(* Interface helpers *)
-(* ~~~~~~~~~~~~~~~~~ *)
-
-let inputName k = match k with
-  | KeyEntry -> "key_entry"
-  | DonationMemo -> "donation_memo"
-  | DonationAmount -> "donation_amount"
-  | BlobPaste -> "blob_paste"
-
-let navText p = match p with
-  | LocStart -> ">> start page"
-  | LocManageKeys -> "manage keys"
-  | LocShowKey -> "show key"
-  | LocEnterKey -> "enter a new key"
-  | LocDonate -> "donate" 
-  | LocPaymentRequests -> "payment requests"
-  | LocBlobUpload -> "data upload"
-
-let header text =  
-  h "h1" (vnode_attributes ()) [| h_text text |]
-
-let link href text =
-  let key = Util.random_key () in
-  h "a" (vnode_attributes ~href ~key ()) [| h_text text |]
-
-let row =  
-  let key = Util.random_key () in
-  let atts = vnode_attributes ~key ~class_: "row" () in 
-  h "div" atts 
-
-let column = 
-  let key = Util.random_key () in
-  let atts = vnode_attributes ~key ~class_: "column" () in 
-  h "div" atts
-
-let parNode xs =
-  let key = Util.random_key () in
-  let atts = vnode_attributes ~key () in 
-  h "p" atts xs
-
-let par text = parNode [| h_text text |]
-
-let button emit text t = 
-  let key = Util.random_key () in
-  let on_click = fun _ -> emit (Click t) in
-  let atts = vnode_attributes ~key ~class_:"button" ~onclick:on_click () in
-  h "div" atts [| h_text text |]
-
-let input_ emit t value x = 
-  let key = inputName x in
-  let contents e = 
-      let target = Event.targetGet e in
-      begin match Event.valueGet target with
-        | Some v -> emit (Input (x, v)) 
-        | None -> () 
-      end ;
-  in
-  let input_elt = h "input" (vnode_attributes ~key ~value ~oninput: contents ()) [||] in
-  let wrapper = h "div" (vnode_attributes ~key ~class_: "input" ()) in
-  match t with
-
-    | Some text ->
-        wrapper [| h "p" (vnode_attributes ()) [| h_text text |]
-         ; input_elt 
-         |]
-    | None -> wrapper [| input_elt |] 
- 
-
-
-(* ~~~~~~~~~ *)
-(* Interface *)
-(* ~~~~~~~~~ *)
-
-let render emit state =
-  let button' = button emit in
-  let input_elt = input_ emit in
-  let nav p = button' (navText p) (Nav p) in
-  let forgetKey = button' "forget your key" (SetKey None) in
-
-  let content = match state.active_page with 
-
-    | LocStart ->  
-        [| header "BOB chicago #reckless" 
-         ; par "This is BOB's demo site"
-         ; row [| nav LocDonate; nav LocPaymentRequests;  nav LocManageKeys |] 
-         |]
-
-    | LocManageKeys ->  
-        [| header "Manage your key"
-         ; match Js.Nullable.toOption state.key with 
-           | None -> 
-              row [| nav LocEnterKey; button' "generate a random key" GenRandomKey; nav LocStart |]
-           | Some _ -> 
-              row [| forgetKey; nav LocShowKey; nav LocStart |]
-         |]
-
-    | LocShowKey -> 
-        let keyMsg = Belt.Option.getWithDefault (Js.Nullable.toOption state.key) "NO_KEY" in 
-        [| header "Your current key"
-         ; par keyMsg
-         ; row [| forgetKey; nav LocStart |] 
-         |] 
-
-    | LocEnterKey -> 
-        let enter_key = button' "set key" (SetKey(Some(state.input_fields.key_entry))) in
-        [| header "Please enter a new key"
-         ; input_elt None state.input_fields.key_entry KeyEntry 
-         ; row [| enter_key; nav LocStart |] 
-         |]
-
-    | LocPaymentRequests -> 
-        let fmt pr = 
-          let part1 = 
-            let is_paid = if pr.paid then " PAID" else "" in
-            "(" ^  Js.Date.toString pr.date ^ is_paid ^ "): "
-          in
-          let url = "lightning:" ^ pr.req in
-          parNode [| h_text part1; link url pr.memo |] in
-        let pr_nodes = Array.map fmt state.payment_requests in
-        [| header "Your payment requests"
-         ; column pr_nodes 
-         ; row [| nav LocStart |]
-        |]
-
-    | LocDonate ->
-        let donate = button' "donate" Donate in
-        [| header "Donate to BOB"
-         ; input_elt (Some "donation message") state.input_fields.donation_memo DonationMemo
-         ; input_elt (Some "donation amount") state.input_fields.donation_amount DonationAmount
-         ; row [| donate; nav LocStart |]
-         |]
-
-    | LocBlobUpload ->
-        let upload = button' "upload" UploadBlob in
-        [| header "Upload raw binary data"
-         ; input_elt (Some "enter data") state.input_fields.blob_paste BlobPaste
-         ; row [| upload; nav LocStart |]
-         |]
-  
-  in h "div" (vnode_attributes ~class_: "main" ()) content
 
 (* ~~~~~~~~~~~~~ *)
 (* Start the app *)
@@ -331,12 +194,12 @@ let run _ =
   in
 
   let handler stim = 
-    let action = update stim in
-    let s1_p = runEffect app_send !state action in
+    let s1_p = runEffect app_send !state (toEffect stim) in
     let h s = 
       begin state := s ;
       let encoded = Serialization.encode_app_state s in
       LocalStorage.put "state" (Js.Json.stringify encoded) ;
+      schedule_render proj ;
       Js.Promise.resolve ()
       end
     in
@@ -350,8 +213,7 @@ let run _ =
   Effect send_sync_message |> emit ;
 
   let app = get_element_by_id doc "app" in
-  replace proj app (fun _ -> render emit !state);
+  replace proj app (fun _ -> Interface.render emit !state);
   schedule_render proj;
 
   end
-
