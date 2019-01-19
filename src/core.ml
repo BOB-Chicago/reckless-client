@@ -7,30 +7,60 @@ module Option = Belt.Option
 let send_sync_message = 
   WithDerivation("/sync", fun x -> SendMsg (Sync x, fun _ -> NoOp))
 
+let (>>) = Util.(>>)
+
 (* ~~~~~~~~~ *)
 (* App logic *)
 (* ~~~~~~~~~ *)
 
+(* Helpers *)
 
-let toEffect stim =
-  match stim with
-  | Click (Nav x) -> 
-      let u state = { state with active_page = x } in
-      StateUpdate (u, NoOp)
+let clear_donation_inputs state = 
+  { state with input_fields = 
+    { state.input_fields with
+      donation_memo = ""
+      ; donation_amount = "" }
+  }
+
+
+let clear_key_inputs state =
+  { state with input_fields =
+    { state.input_fields with key_entry = "" }
+  }
+
+
+let clear_blob_inputs s = 
+  { s with input_fields = { s.input_fields with blob_paste = "" } } 
+
+
+let set_page page state = { state with active_page = page }
+
+
+let add_payment_request pr state =
+  Js.Array.push pr state.payment_requests ; state  
+
+
+let update_key k state = { state with key = Js.Nullable.fromOption k }
+
+
+(* reactions *)
+
+let toEffect stim = match stim with
+
+  | Effect eff -> eff
+
+  | Click (Nav p) -> 
+      StateUpdate (set_page p, NoOp)
 
   | Click (SetKey x) -> 
-      let u state = 
-        { state with key = Js.Nullable.fromOption x
-          ; input_fields =
-            { state.input_fields with key_entry = "" }
-          ; active_page = LocManageKeys
-        }
-      in
       let next = match x with
         | Some _ -> send_sync_message
         | None -> NoOp
       in
-      StateUpdate (u, next)
+      StateUpdate (
+        set_page LocManageKeys >> update_key x >> clear_key_inputs, 
+        next
+      )
 
   | Click Donate ->
       WithState(fun state -> 
@@ -39,56 +69,47 @@ let toEffect stim =
           Js.Math.floor f
         in
         let memo = "[donation] " ^ state.input_fields.donation_memo in
-        (* Clear input fields *)
-        let clear_input s = { s 
-              with active_page = LocPaymentRequests
-              ; input_fields = 
-                { s.input_fields 
-                  with donation_memo = ""
-                     ; donation_amount = "" } 
-              }
-        in
-        let put_req req r_hash s = 
-          let pr = { req; r_hash; memo; paid = false; date = Js.Date.make () } in
-          Js.Array.push pr s.payment_requests ; s 
-        in
         let handler = function
           | PaymentRequest (req, r_hash) -> 
-              StateUpdate (put_req req r_hash, NoOp)
+            let pr = { req; r_hash; memo; paid = false; date = Js.Date.make () } in
+              StateUpdate (add_payment_request pr, NoOp)
 
           | _ -> NoOp
         in
         let op = SendMsg(DonateMsg(memo, amount), handler) in
-        StateUpdate (clear_input, op)
+        StateUpdate (
+          set_page LocPaymentRequests >> clear_donation_inputs, 
+          op
+        )
       )
   
   | Click GenRandomKey ->
       let keyBuf = Util.random_bytes 32 in
       let hex = Util.hex_encode keyBuf in
-      let u state = { state with key = Js.Nullable.return hex } in
-      StateUpdate (u, send_sync_message)
+      StateUpdate (
+        update_key (Some hex), 
+        send_sync_message
+      )
 
   | Click UploadBlob ->
-      let next blob_key = WithState(fun state ->
-        let clear_blob s = { s with input_fields = { s.input_fields with blob_paste = "" } } in
+      let next blob_key state = 
 
-        let handler = function
+        let response_handler = function
           | PaymentRequest (req, r_hash) -> 
-              let pr = { req; r_hash; memo = "new blob"; paid = false; date = Js.Date.make () } in
-              let new_pr s = Js.Array.push pr s.payment_requests; s in
-              StateUpdate (new_pr,  NoOp)
+              let pr = { req; r_hash; memo = "blob upload"; paid = false; date = Js.Date.make () } in
+              StateUpdate (add_payment_request pr,  NoOp)
 
           | _ -> NoOp
         in
 
         let payload = state.input_fields.blob_paste in
 
-        let send_new_blob = SendMsg(NewBlob(payload, blob_key, 7), handler) in
-
-        StateUpdate (clear_blob, send_new_blob)
+        StateUpdate (
+          clear_blob_inputs, 
+          SendMsg(NewBlob(payload, blob_key, 7), response_handler)
         )
       in
-      WithDerivation("/blob", next)
+      WithDerivation("/blob", fun blob_key -> WithState (next blob_key))
 
   | Input (x, s) ->
       let u state = { state with input_fields =
@@ -110,11 +131,6 @@ let toEffect stim =
       in
       StateUpdate (u, NoOp)
 
-  | PushMessage Ack ->
-      Js.log "Ack" ; 
-      NoOp
-
-  | Effect eff -> eff
 
   | _ -> NoOp ;;
 

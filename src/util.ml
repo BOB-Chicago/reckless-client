@@ -3,6 +3,9 @@ open Bridge.Crypto
 
 module Uint8Array = Js.Typed_array.Uint8Array
 
+(* basic *)
+
+let ( >> ) f g x = g (f x)
 
 (* Hex *)
 
