@@ -15,7 +15,7 @@
     "lightning",
     "network"
   ],
-  "license": "MIT",
+  "license": "Unlicense",
   "devDependencies": {
     "bs-platform": "^4.0.14",
     "webpack": "^4.28.3",
