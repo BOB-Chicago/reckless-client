@@ -193,6 +193,8 @@ let run _ =
     Js.Promise.then_ next (ws_send_promise msg)
   in
 
+  (* FIXME actions compete to be the last state update *)
+
   let handler stim = 
     let s1_p = runEffect app_send !state (toEffect stim) in
     let h s = 

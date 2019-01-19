@@ -3,7 +3,11 @@
 
 module Uint8Array = Js.Typed_array.Uint8Array
 
-(* Application parameters *)
+(** 
+ * We assume that application config is held in the global variable
+ * `app_config`.  To configure the app, we need the url of the WebSocket server
+ * and the node URI of our LND node. 
+ *)
 
 module Config = struct
 
@@ -16,7 +20,9 @@ module Config = struct
 
 end
 
-
+(**
+ * The app uses the JavaScript event system to create a simple message queue.  
+ *)
 module Event = struct
 
   type event_target = { value: string option } [@@bs.deriving abstract]
@@ -31,7 +37,10 @@ module Event = struct
 
 end
 
-
+(**
+ * We use `maquette.js` for building and modifying the DOM tree.  This module
+ * provides bindings to the essentials.
+ *)
 module VDom = struct
 
   (* Generic type to hide details of working with the dom tree *)
@@ -65,7 +74,10 @@ module VDom = struct
 
 end
 
-
+(**
+ * This module provides a simple API for working with a WebAPIs WebSocket, and
+ * the JavaScript glue is implemented in `lib.js`.
+ *)
 module WebSocket = struct
 
   type websocket
@@ -87,6 +99,9 @@ end
 
 let ws_config_to_js = WebSocket.websocket_configToJs
 
+(**
+ * Here is a simple crypto API that can be used idiomatically in the OCaml code. 
+ *)
 module Crypto = struct
 
   external uint8Array_concat : Uint8Array.t array -> Uint8Array.t = "uint8ArrayConcat" [@@bs.module "./lib"]
