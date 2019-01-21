@@ -1,0 +1,11 @@
+syntax: regexp
+
+\.swp$
+\.bs\.js$
+
+^.merlin
+
+^lib/
+^node_modules/
+^www/config.js
+^www/bundle.js
