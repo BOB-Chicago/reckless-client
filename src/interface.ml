@@ -33,6 +33,9 @@ let div cl xs = h "div" (vnode_attributes ~class_: cl ()) xs
 let header text =  
   h "h1" (vnode_attributes ()) [| h_text text |]
 
+let link href x =
+  h "a" (vnode_attributes ~href ()) [| x |]
+
 let internal_link onclick text =
   let key = Util.random_key () in
   let atts = vnode_attributes ~onclick ~key ~class_: "internalLink" () in
@@ -115,11 +118,14 @@ let render emit state =
           then [| nav LocManageKeys |]
           else [| nav LocDonate; nav LocPaymentRequestList; nav LocManageKeys |]
         in
+
+        let node_qr = h "div" (vnode_attributes ~class_: "qrcode" ~innerHTML: (Qr.qrencode node_uri) ()) [||] in
+
         [| header "BOB chicago #reckless" 
          ; row controls 
          ; explainer (get_copy "welcome")
          ; par "our lightning node:"
-         ; h "div" (vnode_attributes ~class_: "qrcode" ~innerHTML: (Qr.qrencode node_uri) ()) [||]
+         ; link ("lightning://" ^ node_uri) node_qr
          |]
 
     | LocManageKeys ->  
