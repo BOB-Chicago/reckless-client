@@ -36,6 +36,9 @@ let clear_blob_inputs s =
 let set_page page state = { state with active_page = page }
 
 
+let focus_pr pr state = { state with active_pr = Some pr }
+
+
 let add_payment_request pr state =
   Js.Array.push pr state.payment_requests ; state  
 
@@ -72,13 +75,13 @@ let toEffect stim = match stim with
         let handler = function
           | PaymentRequest (req, r_hash) -> 
             let pr = { req; r_hash; memo; paid = false; date = Js.Date.make () } in
-              StateUpdate (add_payment_request pr, NoOp)
+              StateUpdate (add_payment_request pr >> focus_pr pr >> set_page LocPaymentRequest , NoOp)
 
           | _ -> NoOp
         in
         let op = SendMsg(DonateMsg(memo, amount), handler) in
         StateUpdate (
-          set_page LocPaymentRequestList >> clear_donation_inputs, 
+          clear_donation_inputs, 
           op
         )
       )
@@ -118,6 +121,12 @@ let toEffect stim = match stim with
 
       in
       WithDerivation("/blob", fun blob_key -> WithState (get_pr blob_key))
+
+  | Click (ViewPaymentRequest pr) ->
+      StateUpdate (
+        focus_pr pr >> set_page LocPaymentRequest, 
+        NoOp
+      )
 
   | Input (x, s) ->
       let u state = { state with input_fields =
