@@ -69,11 +69,9 @@ let toEffect stim = match stim with
 
   | Click Donate ->
       WithState(fun state -> 
-        let amount = 
-          let f = Js.Float.fromString state.input_fields.donation_amount in
-          Js.Math.floor f
-        in
+        let amount = Js.Float.fromString state.input_fields.donation_amount in
         let memo = "[donation] " ^ state.input_fields.donation_memo in
+
         let handler = function
           | PaymentRequest (req, r_hash) -> 
             let pr = { req; r_hash; memo; paid = false; date = Js.Date.make () } in
@@ -84,7 +82,12 @@ let toEffect stim = match stim with
 
           | _ -> NoOp
         in
-        let op = SendMsg(DonateMsg(memo, amount), handler) in
+
+        let op = 
+          if Js.Float.isNaN amount then NoOp
+          else SendMsg(DonateMsg(memo, Js.Math.floor amount), handler) 
+        in
+
         StateUpdate (
           clear_donation_inputs, 
           op
