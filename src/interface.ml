@@ -126,8 +126,8 @@ let render emit state =
 
         let links =
           [| h "span" (vnode_attributes ()) [| h_text "this code on github: " |]
-          ; text_link "https://github.com/bob-chicago/bob-client" "bob-client" 
-          ; text_link "https://github.com/bob-chicago/reckless-demo" "bob-server"
+          ; text_link "https://github.com/bob-chicago/reckless-client" "client" 
+          ; text_link "https://github.com/bob-chicago/reckless-server" "server"
           |]
         in
 
