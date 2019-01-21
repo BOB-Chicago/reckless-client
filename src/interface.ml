@@ -142,11 +142,12 @@ let render emit state =
             |]
 
         | Some pr -> 
-          [| header ("Payment request:" ^ pr.memo)
-          ; h "div" (vnode_attributes ~class_: "prqr" ~innerHTML: (Qr.qrencode pr.req) ()) [||]
-          ; par pr.req
-          ; row [| nav LocPaymentRequestList; nav LocStart |]
-          |] 
+            let msg = (if pr.paid then "[PAID] " else "") ^ "Payment request: " ^ pr.memo in
+            [| header msg
+            ; h "div" (vnode_attributes ~class_: "prqr" ~innerHTML: (Qr.qrencode pr.req) ()) [||]
+            ; par pr.req
+            ; row [| nav LocPaymentRequestList; nav LocStart |]
+            |] 
 
         end
 
