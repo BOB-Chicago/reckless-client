@@ -4,8 +4,8 @@
   "scripts": {
     "clean": "bsb -clean-world",
     "build": "bsb -make-world",
-    "bundle": "webpack",
-    "make": "bsb -make-world && webpack",
+		"make:dev": "bsb -make-world && webpack --mode development --devtool source-map",
+    "make": "bsb -make-world && webpack --mode production",
     "start:dev": "webpack-dev-server",
     "watch": "bsb -make-world -w"
   },
