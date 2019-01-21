@@ -32,7 +32,7 @@ let header text =
 
 let internal_link onclick text =
   let key = Util.random_key () in
-  let atts = vnode_attributes ~onclick ~key () in
+  let atts = vnode_attributes ~onclick ~key ~class_: "internalLink" () in
   h "span" atts [| h_text text |]
 
 let row =  

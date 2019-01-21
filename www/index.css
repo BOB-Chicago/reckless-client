@@ -47,6 +47,16 @@ input {
 	background: lightblue;
 }
 
+.internalLink {
+	text-decoration: underline;
+}
+
+.internalLink:hover {
+	background: lightblue;
+	cursor: pointer;
+	text-decoration: none;
+}
+
 .explainer {
 	width: 80ch;
 }
