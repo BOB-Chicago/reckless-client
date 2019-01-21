@@ -256,7 +256,7 @@ let run _ =
 
   Effect send_sync_message |> emit ;
 
-  let app = get_element_by_id doc "app" in
+  let app = Dom.get_element_by_id Dom.doc "app" in
   replace proj app (fun _ -> Interface.render emit !state);
   schedule_render proj;
 

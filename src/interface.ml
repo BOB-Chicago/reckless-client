@@ -22,7 +22,7 @@ let nav_text p = match p with
   | LocPaymentRequest _ -> "payment request"
   | LocBlobUpload -> "data upload"
 
-let get_copy str = textContentGet (get_element_by_id doc str)
+let get_copy str = Dom.innerHTMLGet (Dom.get_element_by_id Dom.doc str)
 
 (* ~~~~~~~~~~ *)
 (* Components *)
@@ -58,9 +58,9 @@ let par_node xs =
 
 let par text = par_node [| h_text text |]
 
-let explainer text = 
-  let atts = vnode_attributes ~key: "explainer" ~class_: "explainer" () in
-  h "p" atts [| h_text text |]
+let explainer tag = 
+  let atts = vnode_attributes ~key: "explainer" ~class_: "explainer" ~innerHTML: (get_copy tag) () in
+  h "div" atts [||]
 
 let button emit text t = 
   let key = Util.random_key () in
@@ -123,8 +123,8 @@ let render emit state =
 
         [| header "BOB chicago #reckless" 
          ; row controls 
-         ; explainer (get_copy "welcome")
-         ; par "our lightning node:"
+         ; explainer "welcome" 
+         ; par "Connect to our lightning node:"
          ; link ("lightning://" ^ node_uri) node_qr
          |]
 
@@ -160,9 +160,10 @@ let render emit state =
 
         | Some pr -> 
             let msg = (if pr.paid then "[PAID] " else "") ^ "Payment request: " ^ pr.memo in
+            let qr = h "div" (vnode_attributes ~class_: "qrcode" ~innerHTML: (Qr.qrencode pr.req) ()) [||] in
             [| header msg
-            ; h "div" (vnode_attributes ~class_: "qrcode" ~innerHTML: (Qr.qrencode pr.req) ()) [||]
-            ; par pr.req
+            ; explainer "payment-request"
+            ; link ("lightning:" ^ pr.req) qr
             ; row [| nav LocPaymentRequestList; nav LocStart |]
             |] 
 
@@ -185,6 +186,7 @@ let render emit state =
     | LocDonate ->
         let donate = button' "donate" Donate in
         [| header "Donate to BOB"
+         ; explainer "donation"
          ; input_elt (Some "donation message") state.input_fields.donation_memo DonationMemo
          ; input_elt (Some "donation amount") state.input_fields.donation_amount DonationAmount
          ; row [| donate; nav LocStart |]

@@ -10,7 +10,15 @@
     </div>
     <div class="copy">
       <div id="welcome">
-Welcome to our lightning demo app!  
+        <p>Welcome to our lightning demo app!</p>  
+        <p>The lightning network is a new payment system for transferring bitcoin.  To transfer bitcoin using the original bitcoin p2p network, the payer creates a transaction that consumes some of their bitcoin to create outputs spendable by the payee.  Then both users wait for the transaction to be included in a block by the miners, and possibly for several more blocks to be mined on top.  Because of the probabilitic nature of mining, and the complexities of the fee market there is a lot of variation in the time users have to wait before their transaction is settled (by their own criteria).</p>
+        <p>The Lightning Network works a bit differently.  During the setup phase, a user selects some nodes from the network and opens payment channels with them by committing bitcoin using a special kind of on-chain transaction.  Each channel has a most recent state defining how to split the bitcoin in the channel between the two participants.  As long as both channel participants are online they can efficiently update this split, without worrying about their counterpart cheating and publishing an old split.  Typically a user will not be connected to the node they want to pay.  So they find a route through the network consisting of a series of nodes where each has a channel with the next, starting with the payer and ending at the payee.  A payment is conducted by adjusting the split in each channel on the route so that the same quantity of bitcoin moves from the node farther from the payee to the node closer to the payee.  The nodes use a clever cryptographic trick to prevent a node from taking the payment on their incoming channel without making the payment on their outgoing channel.</p>
+      </div>
+      <div id="donation">
+BOB is a volunteer-run organization and we rely on donations and sponsorships to pay for events.  
+      </div>
+      <div id="payment-request">
+A payment request is made up of a message, an amount, a node id (payee), and cryptographic data that allows the network to route the payment without worrying about somebody along the route cheating.  The easiest way to fulfil a payment request is to use a mobile wallet to scan the QR code below.
       </div>
     </div>
     <script src="config.js"></script>

@@ -37,18 +37,22 @@ module Event = struct
 
 end
 
+module Dom = struct
+  type document
+
+  (* Generic type to hide details of working with the dom tree *)
+  type element = { innerHTML: string } [@@bs.deriving abstract]
+
+  external doc : document = "document" [@@bs.val]
+  external get_element_by_id : document -> string -> element = "getElementById" [@@bs.send]
+
+end
+
 (**
  * We use `maquette.js` for building and modifying the DOM tree.  This module
  * provides bindings to the essentials.
  *)
 module VDom = struct
-
-  (* Generic type to hide details of working with the dom tree *)
-  type app_element = { textContent: string } [@@bs.deriving abstract]
-  type node
-  
-  external dom_node : app_element -> node = "domNode" [@@bs.send]
-  external focus : node -> unit = "focus" [@@bs.send]
 
   type vnode_attributes =
     { class_ : string [@bs.as "class"] [@bs.optional]
@@ -59,19 +63,16 @@ module VDom = struct
     ; onclick: unit -> unit [@bs.optional]
     ; oninput: Event.event -> unit [@bs.optional]
     ; onchange: Event.event -> unit [@bs.optional]
-    } [@@bs.deriving abstract]
+    } [@@bs.deriving abstract] 
 
-  type document
   type projector
+  type vnode
 
-  external h_text : string -> app_element = "%identity"
-  external h : string -> vnode_attributes -> app_element array -> app_element = "h" [@@bs.module "maquette"]
+  external h_text : string -> vnode = "%identity"
+  external h : string -> vnode_attributes -> vnode array -> vnode = "h" [@@bs.module "maquette"]
   external create_projector : unit -> projector = "createProjector" [@@bs.module "maquette"]
   external schedule_render : projector -> unit = "scheduleRender" [@@bs.send]
-  external replace : projector -> app_element -> (unit -> app_element) -> unit = "replace" [@@bs.send]
-
-  external doc : document = "document" [@@bs.val]
-  external get_element_by_id : document -> string -> app_element = "getElementById" [@@bs.send]
+  external replace : projector -> Dom.element -> (unit -> vnode) -> unit = "replace" [@@bs.send]
 
 end
 
