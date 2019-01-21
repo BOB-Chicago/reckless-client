@@ -75,7 +75,10 @@ let toEffect stim = match stim with
         let handler = function
           | PaymentRequest (req, r_hash) -> 
             let pr = { req; r_hash; memo; paid = false; date = Js.Date.make () } in
-              StateUpdate (add_payment_request pr >> focus_pr pr >> set_page LocPaymentRequest , NoOp)
+              StateUpdate (
+                add_payment_request pr >> focus_pr pr >> set_page LocPaymentRequest, 
+                NoOp
+              )
 
           | _ -> NoOp
         in
@@ -159,8 +162,8 @@ let toEffect stim = match stim with
 let rec runEffect send state eff = match eff with 
   | SendMsg (msg, handler) -> 
       Js.log "SendMsg" ;
-      let next _ = Js.Promise.resolve state in
-      send msg handler |> Js.Promise.then_ next
+      let next response = runEffect send state (handler response) in
+      Js.Promise.then_ next (send msg)
 
   | StateUpdate (updater, next) -> 
       Js.log "StateUpdate" ;
@@ -221,15 +224,10 @@ let run _ =
 
   (* capture resources in handler *)
 
-  let app_send msg h =
-    let next x = Js.Promise.resolve (emit (Effect(h x))) in
-    Js.Promise.then_ next (ws_send_promise msg)
-  in
-
   (* FIXME actions compete to be the last state update *)
 
   let handler stim = 
-    let s1_p = runEffect app_send !state (toEffect stim) in
+    let s1_p = runEffect ws_send_promise !state (toEffect stim) in
     let h s = 
       begin state := s ;
       let encoded = Serialization.encode_app_state s in
