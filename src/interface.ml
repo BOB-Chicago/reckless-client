@@ -28,6 +28,8 @@ let get_copy str = textContentGet (get_element_by_id doc str)
 (* Components *)
 (* ~~~~~~~~~~ *)
 
+let div cl xs = h "div" (vnode_attributes ~class_: cl ()) xs
+
 let header text =  
   h "h1" (vnode_attributes ()) [| h_text text |]
 
@@ -103,6 +105,8 @@ let render emit state =
   let nav p = button' (nav_text p) (Nav p) in
   let forgetKey = button' "forget your key" (SetKey None) in
 
+  let node_uri = Config.node_uriGet (Config.config) in
+
   let content = match state.active_page with 
 
     | LocStart ->  
@@ -114,6 +118,8 @@ let render emit state =
         [| header "BOB chicago #reckless" 
          ; row controls 
          ; explainer (get_copy "welcome")
+         ; par "our lightning node:"
+         ; h "div" (vnode_attributes ~class_: "qrcode" ~innerHTML: (Qr.qrencode node_uri) ()) [||]
          |]
 
     | LocManageKeys ->  
@@ -149,7 +155,7 @@ let render emit state =
         | Some pr -> 
             let msg = (if pr.paid then "[PAID] " else "") ^ "Payment request: " ^ pr.memo in
             [| header msg
-            ; h "div" (vnode_attributes ~class_: "prqr" ~innerHTML: (Qr.qrencode pr.req) ()) [||]
+            ; h "div" (vnode_attributes ~class_: "qrcode" ~innerHTML: (Qr.qrencode pr.req) ()) [||]
             ; par pr.req
             ; row [| nav LocPaymentRequestList; nav LocStart |]
             |] 
@@ -186,5 +192,7 @@ let render emit state =
          ; row [| upload; nav LocStart |]
          |]
   
-  in h "div" (vnode_attributes ~class_: "main" ()) content
+  in 
+ 
+  div "main" content 
 
