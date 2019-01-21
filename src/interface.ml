@@ -22,6 +22,7 @@ let nav_text p = match p with
   | LocPaymentRequest _ -> "payment request"
   | LocBlobUpload -> "data upload"
 
+let get_copy str = textContentGet (get_element_by_id doc str)
 
 (* ~~~~~~~~~~ *)
 (* Components *)
@@ -51,6 +52,10 @@ let par_node xs =
   h "p" atts xs
 
 let par text = par_node [| h_text text |]
+
+let explainer text = 
+  let atts = vnode_attributes ~key: "explainer" ~class_: "explainer" () in
+  h "p" atts [| h_text text |]
 
 let button emit text t = 
   let key = Util.random_key () in
@@ -107,8 +112,8 @@ let render emit state =
           else [| nav LocDonate; nav LocPaymentRequestList; nav LocManageKeys |]
         in
         [| header "BOB chicago #reckless" 
-         ; par "This is BOB's demo site"
          ; row controls 
+         ; explainer (get_copy "welcome")
          |]
 
     | LocManageKeys ->  

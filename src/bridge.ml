@@ -44,7 +44,7 @@ end
 module VDom = struct
 
   (* Generic type to hide details of working with the dom tree *)
-  type app_element 
+  type app_element = { textContent: string } [@@bs.deriving abstract]
   type node
   
   external dom_node : app_element -> node = "domNode" [@@bs.send]
