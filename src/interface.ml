@@ -28,13 +28,16 @@ let get_copy str = Dom.innerHTMLGet (Dom.get_element_by_id Dom.doc str)
 (* Components *)
 (* ~~~~~~~~~~ *)
 
-let div cl xs = h "div" (vnode_attributes ~class_: cl ()) xs
+let div cl xs = 
+  let key = Util.random_key () in
+  h "div" (vnode_attributes ~key ~class_: cl ()) xs
 
 let header text =  
   h "h1" (vnode_attributes ()) [| h_text text |]
 
 let link href x =
-  h "a" (vnode_attributes ~href ()) [| x |]
+  let key = Util.random_key () in
+  h "a" (vnode_attributes ~key ~href ()) [| x |]
 
 let text_link href text = link href (h_text text)
 
