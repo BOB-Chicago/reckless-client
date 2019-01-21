@@ -48,6 +48,7 @@ input {
 }
 
 .internalLink {
+	padding: 2px;
 	text-decoration: underline;
 }
 
