@@ -1,4 +1,4 @@
-bob-client changelog
+reckless-client changelog
 ====
 
 ## v0.1.2
