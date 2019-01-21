@@ -1,8 +1,8 @@
 ---
-version: alpha/1.2
+version: alpha/1.1
 ---
 
-bob-client
+reckless-client
 ====
 
 This is the client for the BOB Chicago lightning demo app.  (See 

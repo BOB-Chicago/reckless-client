@@ -1,5 +1,5 @@
 {
-  "name": "bob-client",
+  "name": "reckless-client",
   "version": "0.1.1",
   "scripts": {
     "clean": "bsb -clean-world",

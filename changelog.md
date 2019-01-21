@@ -9,7 +9,7 @@ bob-client changelog
 - [ ] pager for long lists
 - [ ] support for paid blob upload and download
 
-## v0.1.1
+## v0.1.1 -- 2019-01-21
 
 - adds site copy
 - qrcode display for payment requests
