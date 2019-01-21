@@ -143,8 +143,9 @@ let render emit state =
 
         | Some pr -> 
           [| header ("Payment request:" ^ pr.memo)
-           ; par pr.req
-           ; row [| nav LocPaymentRequestList; nav LocStart |]
+          ; h "div" (vnode_attributes ~class_: "prqr" ~innerHTML: (Qr.qrencode pr.req) ()) [||]
+          ; par pr.req
+          ; row [| nav LocPaymentRequestList; nav LocStart |]
           |] 
 
         end
@@ -155,7 +156,6 @@ let render emit state =
             let is_paid = if pr.paid then " PAID" else "" in
             "(" ^  Js.Date.toString pr.date ^ is_paid ^ "): "
           in
-          let url = "lightning:" ^ pr.req in
           let click _ = emit (Click (ViewPaymentRequest pr)) in
           par_node [| h_text part1; internal_link click pr.memo |] in
         let pr_nodes = Array.map fmt state.payment_requests in

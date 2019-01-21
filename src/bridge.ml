@@ -55,6 +55,7 @@ module VDom = struct
     ; key : string [@bs.optional]
     ; value : string [@bs.optional]
     ; href : string [@bs.optional]
+    ; innerHTML : string [@bs.optional]
     ; onclick: unit -> unit [@bs.optional]
     ; oninput: Event.event -> unit [@bs.optional]
     ; onchange: Event.event -> unit [@bs.optional]
@@ -117,5 +118,12 @@ module LocalStorage = struct
 
   external get : string -> string Js.Nullable.t = "getItem" [@@bs.val] [@@bs.scope "window", "localStorage"]
   external put : string -> string -> unit = "setItem" [@@bs.val] [@@bs.scope "window", "localStorage"]
+
+end
+
+
+module Qr = struct
+
+  external qrencode : string -> string = "qrencode" [@@bs.module "./lib"]
 
 end

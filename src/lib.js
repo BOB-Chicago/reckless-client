@@ -44,6 +44,11 @@ const uint8ArrayConcat = xs => {
 
 }
 
+const qrencode = data => {
+	const QR = qrcodegen.QrCode;
+	return QR.encodeText(data, QR.Ecc.LOW).toSvgString(4);
+}
+
 // Encode a string into a Uint8Array
 const encoder = new TextEncoder();
 const encode = encoder.encode.bind(encoder); 
@@ -52,6 +57,7 @@ module.exports = {
 	getWebSocket: getWebSocket,
 	makeEventBus: makeEventBus,
 	uint8ArrayConcat: uint8ArrayConcat,
-	encode: encode
+	encode: encode,
+	qrencode: qrencode
 }
 
