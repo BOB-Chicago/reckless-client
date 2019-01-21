@@ -28,6 +28,7 @@ type input_field =
   | DonationMemo
   | DonationAmount
 
+  | BlobNote
   | BlobPaste
 
   
@@ -71,6 +72,7 @@ type user_provided_data =
   ; donation_memo: string
   ; donation_amount: string
 
+  ; blob_note: string
   ; blob_paste: string
   }
 
@@ -83,6 +85,8 @@ type app_state =
   ; payment_request_cursor: int
   ; active_pr: payment_request option
 
+  ; blob_index: int
+
   ; input_fields: user_provided_data 
 
   } [@@bs.deriving jsConverter]
@@ -92,6 +96,8 @@ let empty_state =
 
   ; key = Js.Nullable.null
 
+  ; blob_index = 0 
+
   ; payment_requests = [||]
   ; payment_request_cursor = 0
   ; active_pr = None
@@ -100,6 +106,7 @@ let empty_state =
     { key_entry = ""
     ; donation_memo = ""
     ; donation_amount = "" 
+    ; blob_note = ""
     ; blob_paste = ""
     }
   }

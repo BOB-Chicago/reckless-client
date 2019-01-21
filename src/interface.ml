@@ -176,6 +176,7 @@ let render emit state =
     | LocBlobUpload ->
         let upload = button' "upload" UploadBlob in
         [| header "Upload raw binary data"
+         ; input_elt (Some "blob note") state.input_fields.blob_note BlobNote
          ; input_elt (Some "enter data") state.input_fields.blob_paste BlobPaste
          ; row [| upload; nav LocStart |]
          |]

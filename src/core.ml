@@ -13,7 +13,7 @@ let (>>) = Util.(>>)
 (* App logic *)
 (* ~~~~~~~~~ *)
 
-(* Helpers *)
+(* Pure state transformations *)
 
 let clear_donation_inputs state = 
   { state with input_fields = 
@@ -30,7 +30,7 @@ let clear_key_inputs state =
 
 
 let clear_blob_inputs s = 
-  { s with input_fields = { s.input_fields with blob_paste = "" } } 
+  { s with input_fields = { s.input_fields with blob_paste = "" ; blob_note = "" } } 
 
 
 let set_page page state = { state with active_page = page }
@@ -44,6 +44,8 @@ let add_payment_request pr state =
 
 
 let update_key k state = { state with key = Js.Nullable.fromOption k }
+
+let increment_blob_index state = { state with blob_index = state.blob_index + 1 }
 
 
 (* reactions *)
@@ -113,20 +115,25 @@ let toEffect stim = match stim with
 
         let paste = state.input_fields.blob_paste in
 
-        if Util.is_hex paste 
+        let blob_content = if Util.is_hex paste then paste else paste |> Crypto.encode |> Util.hex_encode in
 
-        then StateUpdate (
+        StateUpdate (
             clear_blob_inputs, 
             SendMsg(
-              NewBlob(paste, blob_key, 7), 
+              NewBlob(blob_content, blob_key, 7), 
               response_handler
             )
           )
 
-        else NoOp
-
       in
-      WithDerivation("/blob", fun blob_key -> WithState (get_pr blob_key))
+      WithState(fun state ->
+      StateUpdate(
+        increment_blob_index,
+        WithDerivation(
+          "/blob/" ^ Js.Int.toString state.blob_index, 
+          fun blob_key -> get_pr blob_key state
+        )
+      ))
 
   | Click (ViewPaymentRequest pr) ->
       StateUpdate (
@@ -140,6 +147,7 @@ let toEffect stim = match stim with
           | KeyEntry -> { state.input_fields with key_entry = s } 
           | DonationMemo -> { state.input_fields with donation_memo = s }
           | DonationAmount -> { state.input_fields with donation_amount = s }
+          | BlobNote -> { state.input_fields with blob_note = s }
           | BlobPaste -> { state.input_fields with blob_paste = s }
         } 
       in
