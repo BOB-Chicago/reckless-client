@@ -104,7 +104,7 @@ let render emit state =
         let controls = 
           if Js.Nullable.isNullable state.key 
           then [| nav LocManageKeys |]
-          else [| nav LocDonate; nav LocPaymentRequestList; nav LocBlobUpload; nav LocManageKeys |]
+          else [| nav LocDonate; nav LocPaymentRequestList; nav LocManageKeys |]
         in
         [| header "BOB chicago #reckless" 
          ; par "This is BOB's demo site"
