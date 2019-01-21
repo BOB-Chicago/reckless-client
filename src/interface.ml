@@ -19,7 +19,7 @@ let nav_text p = match p with
   | LocEnterKey -> "enter a new key"
   | LocDonate -> "donate" 
   | LocPaymentRequestList -> "payment requests"
-  | LocPaymentRequest _ -> "payment request"
+  | LocPaymentRequest -> "payment request"
   | LocBlobUpload -> "data upload"
 
 let get_copy str = Dom.innerHTMLGet (Dom.get_element_by_id Dom.doc str)
@@ -35,6 +35,8 @@ let header text =
 
 let link href x =
   h "a" (vnode_attributes ~href ()) [| x |]
+
+let text_link href text = link href (h_text text)
 
 let internal_link onclick text =
   let key = Util.random_key () in
@@ -119,11 +121,19 @@ let render emit state =
           else [| nav LocDonate; nav LocPaymentRequestList; nav LocManageKeys |]
         in
 
+        let links =
+          [| h "span" (vnode_attributes ()) [| h_text "this code on github: " |]
+          ; text_link "https://github.com/bob-chicago/bob-client" "bob-client" 
+          ; text_link "https://github.com/bob-chicago/reckless-demo" "bob-server"
+          |]
+        in
+
         let node_qr = h "div" (vnode_attributes ~class_: "qrcode" ~innerHTML: (Qr.qrencode node_uri) ()) [||] in
 
         [| header "BOB chicago #reckless" 
          ; row controls 
          ; explainer "welcome" 
+         ; row links
          ; par "Connect to our lightning node:"
          ; link ("lightning://" ^ node_uri) node_qr
          |]
