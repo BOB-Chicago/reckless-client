@@ -103,7 +103,10 @@ let toEffect stim = match stim with
         let response_handler = function
           | PaymentRequest (req, r_hash) -> 
               let pr = { req; r_hash; memo = "blob upload"; paid = false; date = Js.Date.make () } in
-              StateUpdate (add_payment_request pr,  NoOp)
+              StateUpdate (
+                add_payment_request pr >> focus_pr pr >> set_page LocPaymentRequest,  
+                NoOp
+              )
 
           | _ -> NoOp
         in
