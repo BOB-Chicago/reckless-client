@@ -10,21 +10,31 @@ let decodeTaggedId raw =
 
   match classify raw with
   | JSONObject obj -> 
-      let tagWith t = 
+      let tagB t = 
+        let f v = Types.IdB(t, v) in
+        Js.Dict.get obj "value" |.
+        Option.flatMap decodeString |.
+        Option.map f
+      in
+
+      let tagW32 t = 
         let f v = Types.IdW32(t, v) in
         Js.Dict.get obj "value" |. 
         Option.flatMap decodeNumber |. 
         Option.map Js.Math.floor |.
         Option.map f
       in
-      let decodeTag = function
-        | "ContributionT" -> Some ContributionT
-        | "ItemT" -> Some ItemT
-        | "OrderT" -> Some OrderT
-        | "SurveyT" -> Some SurveyT
+
+      let decodeTId = function
+        | "ContributionT" -> tagW32 ContributionT
+        | "ItemT" -> tagW32 ItemT
+        | "OrderT" -> tagW32 OrderT
+        | "SurveyT" -> tagW32 SurveyT
+        | "BlobT" -> tagB BlobT
         | _ -> None
       in
-      Js.Dict.get obj "type" |. Option.flatMap decodeString |. Option.flatMap decodeTag |. Option.flatMap tagWith
+
+      Js.Dict.get obj "type" |. Option.flatMap decodeString |. Option.flatMap decodeTId 
 
   | _ -> None 
 

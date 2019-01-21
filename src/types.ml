@@ -115,9 +115,12 @@ type object_type_w32 =
   | OrderT
   | SurveyT
 
+type object_type_b =
+  | BlobT
+
 type tagged_id = 
   | IdW32 of object_type_w32 * int
-  | IdB of string * string
+  | IdB of object_type_b * string
 
 type server_message =
   | Ack
