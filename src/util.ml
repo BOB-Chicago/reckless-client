@@ -38,6 +38,7 @@ let hex_decode hex =
       x :: f (i+2)
   in Uint8Array.make (Array.of_list (f 0))
 
+let is_hex str = Js.Re.fromString "[0-9a-fA-F]+" |> Js.Re.test str
 
 (* hashing & randomness *)
 

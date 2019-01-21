@@ -108,6 +108,17 @@ let encode_client_message msg =
       in
       Js.Dict.fromArray spec
 
+  | NewBlob (body, key, ttl) ->
+      let spec =
+        [| ("tag", string "newBlob")
+         ; ("data", string body)
+         ; ("key", string key)
+         ; ("lifetime", number (Js.Int.toFloat ttl))
+        |]
+      in
+      Js.Dict.fromArray spec
+    
+
 (* payment request *)
 
 let encode_payment_request pr =

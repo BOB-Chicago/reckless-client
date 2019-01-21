@@ -78,7 +78,7 @@ let toEffect stim = match stim with
         in
         let op = SendMsg(DonateMsg(memo, amount), handler) in
         StateUpdate (
-          set_page LocPaymentRequests >> clear_donation_inputs, 
+          set_page LocPaymentRequestList >> clear_donation_inputs, 
           op
         )
       )
@@ -92,7 +92,7 @@ let toEffect stim = match stim with
       )
 
   | Click UploadBlob ->
-      let next blob_key state = 
+      let get_pr blob_key state = 
 
         let response_handler = function
           | PaymentRequest (req, r_hash) -> 
@@ -102,14 +102,22 @@ let toEffect stim = match stim with
           | _ -> NoOp
         in
 
-        let payload = state.input_fields.blob_paste in
+        let paste = state.input_fields.blob_paste in
 
-        StateUpdate (
-          clear_blob_inputs, 
-          SendMsg(NewBlob(payload, blob_key, 7), response_handler)
-        )
+        if Util.is_hex paste 
+
+        then StateUpdate (
+            clear_blob_inputs, 
+            SendMsg(
+              NewBlob(paste, blob_key, 7), 
+              response_handler
+            )
+          )
+
+        else NoOp
+
       in
-      WithDerivation("/blob", fun blob_key -> WithState (next blob_key))
+      WithDerivation("/blob", fun blob_key -> WithState (get_pr blob_key))
 
   | Input (x, s) ->
       let u state = { state with input_fields =

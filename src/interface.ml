@@ -6,19 +6,20 @@ open Bridge.VDom
 (* Interface helpers *)
 (* ~~~~~~~~~~~~~~~~~ *)
 
-let inputName k = match k with
+let input_name k = match k with
   | KeyEntry -> "key_entry"
   | DonationMemo -> "donation_memo"
   | DonationAmount -> "donation_amount"
   | BlobPaste -> "blob_paste"
 
-let navText p = match p with
+let nav_text p = match p with
   | LocStart -> ">> start page"
   | LocManageKeys -> "manage keys"
   | LocShowKey -> "show key"
   | LocEnterKey -> "enter a new key"
   | LocDonate -> "donate" 
-  | LocPaymentRequests -> "payment requests"
+  | LocPaymentRequestList -> "payment requests"
+  | LocPaymentRequest _ -> "payment request"
   | LocBlobUpload -> "data upload"
 
 
@@ -29,10 +30,10 @@ let navText p = match p with
 let header text =  
   h "h1" (vnode_attributes ()) [| h_text text |]
 
-let link href text =
+let internal_link onclick text =
   let key = Util.random_key () in
-  let atts = vnode_attributes ~href ~key () in
-  h "a" atts [| h_text text |]
+  let atts = vnode_attributes ~onclick ~key () in
+  h "span" atts [| h_text text |]
 
 let row =  
   let key = Util.random_key () in
@@ -44,12 +45,12 @@ let column =
   let atts = vnode_attributes ~key ~class_: "column" () in 
   h "div" atts
 
-let parNode xs =
+let par_node xs =
   let key = Util.random_key () in
   let atts = vnode_attributes ~key () in 
   h "p" atts xs
 
-let par text = parNode [| h_text text |]
+let par text = par_node [| h_text text |]
 
 let button emit text t = 
   let key = Util.random_key () in
@@ -58,7 +59,7 @@ let button emit text t =
   h "div" atts [| h_text text |]
 
 let input_ emit t value x = 
-  let key = inputName x in
+  let key = input_name x in
 
   let contents e = 
       let target = Event.targetGet e in
@@ -85,7 +86,6 @@ let input_ emit t value x =
          ; input_elt 
          |]
     | None -> wrapper [| input_elt |] 
- 
 
 
 (* ~~~~~~~~~ *)
@@ -95,7 +95,7 @@ let input_ emit t value x =
 let render emit state =
   let button' = button emit in
   let input_elt = input_ emit in
-  let nav p = button' (navText p) (Nav p) in
+  let nav p = button' (nav_text p) (Nav p) in
   let forgetKey = button' "forget your key" (SetKey None) in
 
   let content = match state.active_page with 
@@ -104,7 +104,7 @@ let render emit state =
         let controls = 
           if Js.Nullable.isNullable state.key 
           then [| nav LocManageKeys |]
-          else [| nav LocDonate; nav LocPaymentRequests;  nav LocManageKeys |]
+          else [| nav LocDonate; nav LocPaymentRequestList; nav LocBlobUpload; nav LocManageKeys |]
         in
         [| header "BOB chicago #reckless" 
          ; par "This is BOB's demo site"
@@ -134,14 +134,30 @@ let render emit state =
          ; row [| enter_key; nav LocStart |] 
          |]
 
-    | LocPaymentRequests -> 
+    | LocPaymentRequest ->
+        begin match state.active_pr with
+        | None -> 
+            [| header "Payment request not found" 
+             ; row [| nav LocPaymentRequestList; nav LocStart |] 
+            |]
+
+        | Some pr -> 
+          [| header ("Payment request:" ^ pr.memo)
+           ; par pr.req
+           ; row [| nav LocPaymentRequestList; nav LocStart |]
+          |] 
+
+        end
+
+    | LocPaymentRequestList -> 
         let fmt pr = 
           let part1 = 
             let is_paid = if pr.paid then " PAID" else "" in
             "(" ^  Js.Date.toString pr.date ^ is_paid ^ "): "
           in
           let url = "lightning:" ^ pr.req in
-          parNode [| h_text part1; link url pr.memo |] in
+          let click _ = emit (Click (ViewPaymentRequest pr)) in
+          par_node [| h_text part1; internal_link click pr.memo |] in
         let pr_nodes = Array.map fmt state.payment_requests in
         [| header "Your payment requests"
          ; column pr_nodes 

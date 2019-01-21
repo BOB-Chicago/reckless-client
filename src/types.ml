@@ -17,7 +17,8 @@ type app_location =
   | LocManageKeys
   | LocEnterKey
   | LocShowKey
-  | LocPaymentRequests
+  | LocPaymentRequestList
+  | LocPaymentRequest
   | LocDonate
   | LocBlobUpload
 
@@ -28,6 +29,19 @@ type input_field =
   | DonationAmount
 
   | BlobPaste
+
+  
+(* ~~~~~~~~~~ *)
+(* Data model *)
+(* ~~~~~~~~~~ *)
+
+type payment_request =
+  { r_hash: string
+  ; req: string
+  ; memo: string
+  ; date: Js.Date.t
+  ; paid: bool
+  } [@@bs.deriving jsConverter]
 
 
 (* ~~~~~~~~~~~~~ *)
@@ -44,18 +58,7 @@ type click_target =
 
   | UploadBlob
 
-
-(* ~~~~~~~~~~ *)
-(* Data model *)
-(* ~~~~~~~~~~ *)
-
-type payment_request =
-  { r_hash: string
-  ; req: string
-  ; memo: string
-  ; date: Js.Date.t
-  ; paid: bool
-  } [@@bs.deriving jsConverter]
+  | ViewPaymentRequest of payment_request
 
 
 (* ~~~~~ *)
@@ -73,17 +76,26 @@ type user_provided_data =
 
 type app_state =
   { active_page: app_location
+
   ; key: string Js.Nullable.t
+
   ; payment_requests: payment_request array
   ; payment_request_cursor: int
+  ; active_pr: payment_request option
+
   ; input_fields: user_provided_data 
+
   } [@@bs.deriving jsConverter]
 
 let empty_state =
   { active_page = LocStart
+
   ; key = Js.Nullable.null
+
   ; payment_requests = [||]
   ; payment_request_cursor = 0
+  ; active_pr = None
+
   ; input_fields =
     { key_entry = ""
     ; donation_memo = ""
